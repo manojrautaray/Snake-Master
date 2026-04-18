@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>SNAKE MASTER</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(34, 197, 94, 0.06), transparent 24%),
+        radial-gradient(circle at 82% 26%, rgba(59, 130, 246, 0.07), transparent 28%),
+        radial-gradient(circle at 50% 82%, rgba(16, 185, 129, 0.06), transparent 30%),
+        linear-gradient(135deg, #06101d, #0b1728, #13233f);
+      animation: ambientGlow 12s ease-in-out infinite alternate;
+      color: #fff;
+      padding: 12px;
+      touch-action: manipulation;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    @keyframes ambientGlow {
+      0% { filter: brightness(1); }
+      100% { filter: brightness(1.06); }
+    }
+
+    .page {
+      min-height: calc(100vh - 24px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .game-card {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 24px;
+      padding: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(10px);
+    }
+
+    .title-block {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #f8fafc;
+      text-shadow: 0 0 16px rgba(255,255,255,0.06);
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: #b8c6da;
+      font-size: 14px;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: 1.25fr 0.9fr 0.9fr 1.1fr 1fr 1.15fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .hud-box {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 10px 8px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      min-height: 64px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.01);
+    }
+
+    .hud-box.score-box {
+      background: rgba(34, 197, 94, 0.08);
+      border-color: rgba(34, 197, 94, 0.14);
+    }
+
+    .hud-box.best-box {
+      opacity: 0.9;
+    }
+
+    .hud-label {
+      font-size: 11px;
+      color: #9fb1c7;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .hud-value {
+      font-size: 17px;
+      font-weight: 800;
+      color: #dff7e9;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    .score-box .hud-value {
+      font-size: 22px;
+      color: #22c55e;
+      text-shadow: 0 0 14px rgba(34, 197, 94, 0.18);
+    }
+
+    .multiplier-value {
+      transition: color 0.2s ease, text-shadow 0.2s ease;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      background: #07111f;
+      touch-action: none;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03) inset,
+        0 0 32px rgba(59, 130, 246, 0.06);
+      transform: translate3d(0, 0, 0);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      background:
+        linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px),
+        #07111f;
+      background-size: 20px 20px, 20px 20px, 100% 100%;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, 0.78);
+      padding: 20px;
+      text-align: center;
+      overflow-y: auto;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay-card {
+      max-width: 460px;
+      width: 100%;
+    }
+
+    .overlay h2 {
+      margin: 0 0 10px;
+      font-size: 34px;
+      font-weight: 800;
+    }
+
+    .overlay p {
+      margin: 0 0 12px;
+      color: #c1cfdf;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .countdown-text {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1;
+      color: #22c55e;
+      text-shadow: 0 0 24px rgba(34, 197, 94, 0.28);
+      animation: countdownPop 0.45s ease;
+    }
+
+    @keyframes countdownPop {
+      0% { transform: scale(0.72); opacity: 0.35; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .gameover-card {
+      animation: gameOverPop 0.28s ease;
+    }
+
+    @keyframes gameOverPop {
+      0% { transform: scale(0.94); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .stats-list {
+      margin: 16px 0 14px;
+      display: grid;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .stat-row span:first-child {
+      color: #c1cfdf;
+      font-size: 14px;
+    }
+
+    .stat-row span:last-child {
+      color: #22c55e;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .unlock-row {
+      margin: 10px 0 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(34, 197, 94, 0.10);
+      border: 1px solid rgba(34, 197, 94, 0.14);
+      color: #dff7e9;
+      font-size: 14px;
+    }
+
+    .leaderboard {
+      margin-top: 8px;
+      text-align: left;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .leaderboard h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #e9f3ff;
+    }
+
+    .leaderboard-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .leaderboard-item {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      color: #c8d6e6;
+      font-size: 13px;
+    }
+
+    .leaderboard-rank {
+      color: #22c55e;
+      font-weight: 800;
+    }
+
+    .leaderboard-score {
+      color: #f8fafc;
+      font-weight: 700;
+    }
+
+    .skins-panel {
+      margin-top: 16px;
+      text-align: left;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .skins-panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #e9f3ff;
+    }
+
+    .equipped-skin {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.10);
+      border: 1px solid rgba(34, 197, 94, 0.14);
+      color: #dff7e9;
+      font-size: 13px;
+    }
+
+    .equipped-skin strong {
+      color: #ffffff;
+    }
+
+    .skins-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .skin-item {
+      display: grid;
+      grid-template-columns: 18px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      color: #c8d6e6;
+      font-size: 13px;
+    }
+
+    .skin-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.12);
+    }
+
+    .skin-name {
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .skin-meta {
+      display: block;
+      font-size: 12px;
+      color: #9fb1c7;
+      margin-top: 2px;
+    }
+
+    .skin-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .skin-status {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .skin-status.unlocked {
+      background: rgba(34, 197, 94, 0.12);
+      color: #86efac;
+    }
+
+    .skin-status.locked {
+      background: rgba(255,255,255,0.08);
+      color: #cbd5e1;
+    }
+
+    .skin-use-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      background: rgba(56, 189, 248, 0.14);
+      color: #bfefff;
+      border: 1px solid rgba(56, 189, 248, 0.18);
+    }
+
+    .skin-use-btn:hover {
+      opacity: 0.95;
+    }
+
+    .skin-use-btn.equipped {
+      background: rgba(34, 197, 94, 0.14);
+      color: #dff7e9;
+      border-color: rgba(34, 197, 94, 0.18);
+      cursor: default;
+    }
+
+    .highlight {
+      color: #22c55e;
+      font-weight: 800;
+    }
+
+    .footer {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      color: #b8c6da;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 760px) {
+      .hud {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 8px;
+      }
+
+      .page {
+        min-height: calc(100vh - 16px);
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .title {
+        font-size: 26px;
+      }
+
+      .hud-value {
+        font-size: 17px;
+      }
+
+      .game-card {
+        padding: 12px;
+        border-radius: 20px;
+      }
+
+      .countdown-text {
+        font-size: 56px;
+      }
+
+      .skin-item {
+        grid-template-columns: 18px 1fr;
+      }
+
+      .skin-actions {
+        grid-column: 2;
+        justify-content: flex-start;
+        margin-top: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="game-wrapper">
+      <div class="game-card">
+        <div class="title-block">
+          <h1 class="title">SNAKE MASTER</h1>
+          <p class="subtitle">Go farther. Grow smarter. Master the board.</p>
+        </div>
+
+        <div class="hud">
+          <div class="hud-box score-box">
+            <div class="hud-label">Score</div>
+            <div class="hud-value" id="score">0</div>
+          </div>
+          <div class="hud-box">
+            <div class="hud-label">Speed</div>
+            <div class="hud-value" id="speed">1</div>
+          </div>
+          <div class="hud-box">
+            <div class="hud-label">Multiplier</div>
+            <div class="hud-value multiplier-value" id="multiplier">1x</div>
+          </div>
+          <div class="hud-box">
+            <div class="hud-label">Distance</div>
+            <div class="hud-value" id="distance">0.00 km</div>
+          </div>
+          <div class="hud-box best-box">
+            <div class="hud-label">Best Score</div>
+            <div class="hud-value" id="bestScore">0</div>
+          </div>
+          <div class="hud-box best-box">
+            <div class="hud-label">Best Distance</div>
+            <div class="hud-value" id="bestDistance">0.00 km</div>
+          </div>
+        </div>
+
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="game" width="400" height="400"></canvas>
+
+          <div class="overlay" id="startOverlay">
+            <div class="overlay-card">
+              <h2>SNAKE MASTER</h2>
+              <p>
+                Press <span class="highlight">Spacebar</span> to start on desktop,
+                or <span class="highlight">swipe on the board</span> on mobile.
+              </p>
+              <p>
+                Walls loop you to the opposite side. Don’t crash into yourself.
+              </p>
+              <p>
+                Score rewards smart eating. Distance rewards surviving longer and taking wider routes.
+              </p>
+              <p>
+                Unlock new snake skins by reaching higher scores and distances.
+              </p>
+
+              <div class="skins-panel">
+                <h3>Skins & Progress</h3>
+                <div class="equipped-skin" id="equippedSkin"></div>
+                <div class="skins-list" id="skinsList"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="overlay hidden" id="countdownOverlay">
+            <div class="overlay-card">
+              <div class="countdown-text" id="countdownText">3</div>
+            </div>
+          </div>
+
+          <div class="overlay hidden" id="gameOverOverlay">
+            <div class="overlay-card gameover-card">
+              <h2>SNAKE MASTER</h2>
+              <p class="highlight" style="font-size: 20px; margin-bottom: 14px;">Game Over</p>
+
+              <div class="stats-list">
+                <div class="stat-row">
+                  <span>Your Current Score</span>
+                  <span id="finalScore">0</span>
+                </div>
+                <div class="stat-row">
+                  <span>Your Best Score</span>
+                  <span id="finalBestScore">0</span>
+                </div>
+                <div class="stat-row">
+                  <span>Your Distance</span>
+                  <span id="finalDistance">0.00 km</span>
+                </div>
+                <div class="stat-row">
+                  <span>Your Best Distance</span>
+                  <span id="finalBestDistance">0.00 km</span>
+                </div>
+              </div>
+
+              <div class="unlock-row hidden" id="unlockRow">
+                <span id="unlockText"></span>
+              </div>
+
+              <div class="leaderboard">
+                <h3>Top Runs</h3>
+                <div class="leaderboard-list" id="leaderboardList"></div>
+              </div>
+
+              <p style="margin-top: 14px;">Press <span class="highlight">Spacebar</span> to play again.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          Desktop: <span class="highlight">Arrow Keys</span> to move, <span class="highlight">Spacebar</span> to start or restart<br />
+          Mobile: <span class="highlight">Swipe on the board</span> to play
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const canvasWrap = document.getElementById("canvasWrap");
+
+    const scoreEl = document.getElementById("score");
+    const speedEl = document.getElementById("speed");
+    const multiplierEl = document.getElementById("multiplier");
+    const distanceEl = document.getElementById("distance");
+    const bestScoreEl = document.getElementById("bestScore");
+    const bestDistanceEl = document.getElementById("bestDistance");
+
+    const finalScoreEl = document.getElementById("finalScore");
+    const finalBestScoreEl = document.getElementById("finalBestScore");
+    const finalDistanceEl = document.getElementById("finalDistance");
+    const finalBestDistanceEl = document.getElementById("finalBestDistance");
+
+    const startOverlay = document.getElementById("startOverlay");
+    const countdownOverlay = document.getElementById("countdownOverlay");
+    const countdownText = document.getElementById("countdownText");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+
+    const unlockRow = document.getElementById("unlockRow");
+    const unlockText = document.getElementById("unlockText");
+    const leaderboardList = document.getElementById("leaderboardList");
+    const skinsList = document.getElementById("skinsList");
+    const equippedSkinEl = document.getElementById("equippedSkin");
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    const baseSpeedMs = 220;
+    const minSpeedMs = 70;
+    const kmPerStep = 0.08;
+
+    const skins = [
+      { id: "classic", name: "Classic Neon", head: "#27d86d", bodyA: "#16a34a", bodyB: "#179a49", glow: "rgba(34,197,94,0.30)", scoreReq: 0, distReq: 0 },
+      { id: "cyan", name: "Cyber Cyan", head: "#38bdf8", bodyA: "#0ea5e9", bodyB: "#0284c7", glow: "rgba(56,189,248,0.28)", scoreReq: 120, distReq: 3 },
+      { id: "gold", name: "Volt Gold", head: "#facc15", bodyA: "#eab308", bodyB: "#ca8a04", glow: "rgba(250,204,21,0.28)", scoreReq: 260, distReq: 8 },
+      { id: "violet", name: "Pulse Violet", head: "#a78bfa", bodyA: "#8b5cf6", bodyB: "#7c3aed", glow: "rgba(167,139,250,0.28)", scoreReq: 420, distReq: 14 }
+    ];
+
+    let snake = [];
+    let food = {};
+    let dx = 1;
+    let dy = 0;
+    let score = 0;
+    let distanceKm = 0;
+    let bestScore = Number(localStorage.getItem("snakeMasterBestScore") || 0);
+    let bestDistanceKm = Number(localStorage.getItem("snakeMasterBestDistanceKm") || 0);
+    let selectedSkinId = localStorage.getItem("snakeMasterSelectedSkin") || "classic";
+
+    let gameLoop = null;
+    let gameStarted = false;
+    let isCountingDown = false;
+    let countdownTimer = null;
+    let currentSpeedMs = baseSpeedMs;
+    let particles = [];
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    let audioContext = null;
+    let frameTick = 0;
+    let foodPulse = 0;
+    let headPop = 0;
+    let blinkTimer = 0;
+    let eyeClosedFrames = 0;
+    let lastDirection = "right";
+    let movePulse = 0;
+    let newlyUnlockedSkin = null;
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioContext = new AudioCtx();
+      }
+      if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+    function playTone(frequency, duration, type = "sine", volume = 0.03, detune = 0) {
+      if (!audioContext) return;
+
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator.detune.setValueAtTime(detune, audioContext.currentTime);
+
+      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + duration);
+    }
+
+    function playEatSound() {
+      ensureAudio();
+      if (!audioContext) return;
+      playTone(560, 0.05, "square", 0.028);
+      playTone(840, 0.07, "triangle", 0.018, 6);
+      setTimeout(() => playTone(760, 0.06, "square", 0.022), 26);
+    }
+
+    function playGameOverSound() {
+      ensureAudio();
+      if (!audioContext) return;
+      playTone(320, 0.10, "sawtooth", 0.035);
+      setTimeout(() => playTone(220, 0.12, "sawtooth", 0.03), 70);
+      setTimeout(() => playTone(140, 0.16, "sawtooth", 0.025), 150);
+    }
+
+    function playStartSound() {
+      ensureAudio();
+      if (!audioContext) return;
+      playTone(420, 0.04, "triangle", 0.024);
+      setTimeout(() => playTone(620, 0.06, "triangle", 0.024), 35);
+    }
+
+    function playMovePulse() {
+      ensureAudio();
+      if (!audioContext) return;
+      const level = getLevel();
+      const vol = Math.min(0.012, 0.006 + level * 0.0006);
+      playTone(180 + level * 8, 0.025, "sine", vol);
+    }
+
+    function formatKm(value) {
+      return value.toFixed(2) + " km";
+    }
+
+    function getMultiplierColor(multiplier) {
+      if (multiplier >= 4) return "#f59e0b";
+      if (multiplier >= 3) return "#facc15";
+      if (multiplier >= 2) return "#86efac";
+      return "#dff7e9";
+    }
+
+    function getUnlockedSkins() {
+      return skins.filter(skin => bestScore >= skin.scoreReq || bestDistanceKm >= skin.distReq);
+    }
+
+    function getActiveSkin() {
+      const unlocked = getUnlockedSkins();
+      const selectedUnlocked = unlocked.find(s => s.id === selectedSkinId);
+      if (selectedUnlocked) return selectedUnlocked;
+      return unlocked[unlocked.length - 1] || skins[0];
+    }
+
+    function normalizeSelectedSkin() {
+      const unlocked = getUnlockedSkins();
+      if (!unlocked.some(s => s.id === selectedSkinId)) {
+        selectedSkinId = (unlocked[unlocked.length - 1] || skins[0]).id;
+        localStorage.setItem("snakeMasterSelectedSkin", selectedSkinId);
+      }
+    }
+
+    function selectSkin(skinId) {
+      const unlockedIds = new Set(getUnlockedSkins().map(s => s.id));
+      if (!unlockedIds.has(skinId)) return;
+      selectedSkinId = skinId;
+      localStorage.setItem("snakeMasterSelectedSkin", selectedSkinId);
+      renderSkinsPanel();
+      drawGame();
+    }
+
+    function checkNewUnlocks(previousBestScore, previousBestDistance) {
+      const before = skins
+        .filter(skin => previousBestScore >= skin.scoreReq || previousBestDistance >= skin.distReq)
+        .map(s => s.id);
+
+      const after = getUnlockedSkins().map(s => s.id);
+      const unlockedNow = after.find(id => !before.includes(id));
+
+      if (unlockedNow) {
+        newlyUnlockedSkin = skins.find(s => s.id === unlockedNow) || null;
+      } else {
+        newlyUnlockedSkin = null;
+      }
+    }
+
+    function updateBestHud() {
+      bestScoreEl.textContent = bestScore;
+      bestDistanceEl.textContent = formatKm(bestDistanceKm);
+    }
+
+    function updateMultiplierStyle() {
+      const value = getMultiplier();
+      const color = getMultiplierColor(value);
+      multiplierEl.style.color = color;
+      multiplierEl.style.textShadow = value > 1 ? `0 0 12px ${color}33` : "none";
+    }
+
+    function renderLeaderboard() {
+      const runs = JSON.parse(localStorage.getItem("snakeMasterLeaderboard") || "[]");
+      leaderboardList.innerHTML = "";
+
+      if (!runs.length) {
+        const empty = document.createElement("div");
+        empty.className = "leaderboard-item";
+        empty.innerHTML = `<div class="leaderboard-rank">-</div><div>No runs yet</div><div class="leaderboard-score">-</div>`;
+        leaderboardList.appendChild(empty);
+        return;
+      }
+
+      runs.slice(0, 5).forEach((run, index) => {
+        const item = document.createElement("div");
+        item.className = "leaderboard-item";
+        item.innerHTML = `
+          <div class="leaderboard-rank">#${index + 1}</div>
+          <div>Distance ${run.distance.toFixed(2)} km</div>
+          <div class="leaderboard-score">${run.score}</div>
+        `;
+        leaderboardList.appendChild(item);
+      });
+    }
+
+    function saveRunToLeaderboard() {
+      const runs = JSON.parse(localStorage.getItem("snakeMasterLeaderboard") || "[]");
+      runs.push({
+        score,
+        distance: Number(distanceKm.toFixed(2)),
+        ts: Date.now()
+      });
+
+      runs.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.distance - a.distance;
+      });
+
+      const trimmed = runs.slice(0, 5);
+      localStorage.setItem("snakeMasterLeaderboard", JSON.stringify(trimmed));
+    }
+
+    function renderSkinsPanel() {
+      normalizeSelectedSkin();
+      const unlockedIds = new Set(getUnlockedSkins().map(s => s.id));
+      const activeSkin = getActiveSkin();
+
+      equippedSkinEl.innerHTML = `Equipped Skin: <strong>${activeSkin.name}</strong>`;
+      skinsList.innerHTML = "";
+
+      skins.forEach((skin) => {
+        const unlocked = unlockedIds.has(skin.id);
+        const equipped = activeSkin.id === skin.id;
+
+        const item = document.createElement("div");
+        item.className = "skin-item";
+
+        item.innerHTML = `
+          <div class="skin-dot" style="background:${skin.head}"></div>
+          <div>
+            <div class="skin-name">${skin.name}${equipped ? " • Equipped" : ""}</div>
+            <div class="skin-meta">Unlock at Score ${skin.scoreReq} or Distance ${skin.distReq.toFixed(2)} km</div>
+          </div>
+          <div class="skin-actions">
+            <div class="skin-status ${unlocked ? "unlocked" : "locked"}">
+              ${unlocked ? "Unlocked" : "Locked"}
+            </div>
+            ${
+              unlocked
+                ? `<button class="skin-use-btn ${equipped ? "equipped" : ""}" data-skin-id="${skin.id}">
+                    ${equipped ? "Equipped" : "Use"}
+                   </button>`
+                : ""
+            }
+          </div>
+        `;
+
+        skinsList.appendChild(item);
+      });
+
+      skinsList.querySelectorAll(".skin-use-btn").forEach((btn) => {
+        if (btn.classList.contains("equipped")) return;
+        btn.addEventListener("click", () => {
+          selectSkin(btn.dataset.skinId);
+        });
+      });
+    }
+
+    function initGame() {
+      snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+      ];
+
+      dx = 1;
+      dy = 0;
+      lastDirection = "right";
+      score = 0;
+      distanceKm = 0;
+      particles = [];
+      frameTick = 0;
+      foodPulse = 0;
+      headPop = 0;
+      blinkTimer = 0;
+      eyeClosedFrames = 0;
+      movePulse = 0;
+      newlyUnlockedSkin = null;
+      currentSpeedMs = getSpeedMs();
+      food = generateFood();
+
+      unlockRow.classList.add("hidden");
+      updateHud();
+      drawGame();
+    }
+
+    function getLevel() {
+      return Math.floor((snake.length - 3) / 3) + 1;
+    }
+
+    function getMultiplier() {
+      return Math.max(1, Math.floor((snake.length - 3) / 4) + 1);
+    }
+
+    function getSpeedMs() {
+      const reduction = Math.floor((snake.length - 3) / 3) * 18;
+      return Math.max(minSpeedMs, baseSpeedMs - reduction);
+    }
+
+    function restartLoopIfNeeded() {
+      const newSpeed = getSpeedMs();
+
+      if (newSpeed !== currentSpeedMs && gameStarted) {
+        currentSpeedMs = newSpeed;
+        clearInterval(gameLoop);
+        gameLoop = setInterval(updateGame, currentSpeedMs);
+      } else {
+        currentSpeedMs = newSpeed;
+      }
+    }
+
+    function updateHud() {
+      scoreEl.textContent = score;
+      speedEl.textContent = getLevel();
+      multiplierEl.textContent = getMultiplier() + "x";
+      distanceEl.textContent = formatKm(distanceKm);
+      updateMultiplierStyle();
+      updateBestHud();
+    }
+
+    function beginCountdown() {
+      if (isCountingDown) return;
+
+      ensureAudio();
+      clearInterval(gameLoop);
+      clearInterval(countdownTimer);
+      initGame();
+
+      gameStarted = false;
+      isCountingDown = true;
+
+      startOverlay.classList.add("hidden");
+      gameOverOverlay.classList.add("hidden");
+      countdownOverlay.classList.remove("hidden");
+
+      const sequence = ["3", "2", "1", "GO"];
+      let index = 0;
+
+      countdownText.textContent = sequence[index];
+      countdownText.style.animation = "none";
+      void countdownText.offsetWidth;
+      countdownText.style.animation = "countdownPop 0.45s ease";
+      playStartSound();
+
+      countdownTimer = setInterval(() => {
+        index++;
+
+        if (index < sequence.length) {
+          countdownText.textContent = sequence[index];
+          countdownText.style.animation = "none";
+          void countdownText.offsetWidth;
+          countdownText.style.animation = "countdownPop 0.45s ease";
+          playStartSound();
+        } else {
+          clearInterval(countdownTimer);
+          countdownOverlay.classList.add("hidden");
+          isCountingDown = false;
+          gameStarted = true;
+          currentSpeedMs = getSpeedMs();
+          gameLoop = setInterval(updateGame, currentSpeedMs);
+        }
+      }, 500);
+    }
+
+    function endGame() {
+      clearInterval(gameLoop);
+      clearInterval(countdownTimer);
+      gameStarted = false;
+      isCountingDown = false;
+      playGameOverSound();
+
+      const previousBestScore = bestScore;
+      const previousBestDistance = bestDistanceKm;
+
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem("snakeMasterBestScore", String(bestScore));
+      }
+
+      if (distanceKm > bestDistanceKm) {
+        bestDistanceKm = distanceKm;
+        localStorage.setItem("snakeMasterBestDistanceKm", String(bestDistanceKm));
+      }
+
+      checkNewUnlocks(previousBestScore, previousBestDistance);
+      normalizeSelectedSkin();
+      saveRunToLeaderboard();
+      updateHud();
+      renderLeaderboard();
+      renderSkinsPanel();
+
+      finalScoreEl.textContent = score;
+      finalBestScoreEl.textContent = bestScore;
+      finalDistanceEl.textContent = formatKm(distanceKm);
+      finalBestDistanceEl.textContent = formatKm(bestDistanceKm);
+
+      if (newlyUnlockedSkin) {
+        unlockText.textContent = `New skin unlocked: ${newlyUnlockedSkin.name}`;
+        unlockRow.classList.remove("hidden");
+      } else {
+        unlockRow.classList.add("hidden");
+      }
+
+      gameOverOverlay.classList.remove("hidden");
+    }
+
+    function generateFood() {
+      let newFood;
+      do {
+        newFood = {
+          x: Math.floor(Math.random() * tileCount),
+          y: Math.floor(Math.random() * tileCount)
+        };
+      } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+      return newFood;
+    }
+
+    function spawnFoodParticles(foodX, foodY) {
+      const centerX = foodX * gridSize + gridSize / 2;
+      const centerY = foodY * gridSize + gridSize / 2;
+
+      for (let i = 0; i < 4; i++) {
+        const angle = (Math.PI * 2 * i) / 4 + Math.random() * 0.22;
+        const speed = 0.7 + Math.random() * 0.7;
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 8 + Math.floor(Math.random() * 3),
+          radius: 1.4 + Math.random() * 1.0,
+          alpha: 1
+        });
+      }
+    }
+
+    function updateParticles() {
+      particles = particles
+        .map((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.95;
+          p.vy *= 0.95;
+          p.life -= 1;
+          p.alpha = Math.max(0, p.life / 10);
+          return p;
+        })
+        .filter((p) => p.life > 0);
+    }
+
+    function drawParticles() {
+      particles.forEach((p) => {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(239, 68, 68, ${p.alpha})`;
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function updateBlink() {
+      blinkTimer += 1;
+      if (eyeClosedFrames > 0) {
+        eyeClosedFrames -= 1;
+      } else if (blinkTimer > 48 + Math.floor(Math.random() * 70)) {
+        eyeClosedFrames = 4;
+        blinkTimer = 0;
+      }
+    }
+
+    function updateGame() {
+      const head = {
+        x: snake[0].x + dx,
+        y: snake[0].y + dy
+      };
+
+      if (head.x < 0) head.x = tileCount - 1;
+      if (head.x >= tileCount) head.x = 0;
+      if (head.y < 0) head.y = tileCount - 1;
+      if (head.y >= tileCount) head.y = 0;
+
+      if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+        endGame();
+        return;
+      }
+
+      snake.unshift(head);
+      distanceKm += kmPerStep;
+      frameTick += 1;
+      foodPulse += 0.18;
+      movePulse += 1;
+
+      if (headPop > 0) headPop *= 0.78;
+
+      if (movePulse >= 5) {
+        playMovePulse();
+        movePulse = 0;
+      }
+
+      if (head.x === food.x && head.y === food.y) {
+        spawnFoodParticles(food.x, food.y);
+        playEatSound();
+
+        headPop = 0.22;
+
+        score += 10 * getMultiplier();
+        food = generateFood();
+        restartLoopIfNeeded();
+      } else {
+        snake.pop();
+      }
+
+      updateBlink();
+      updateParticles();
+      updateHud();
+      drawGame();
+    }
+
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawFood();
+      drawSnake();
+      drawParticles();
+    }
+
+    function drawFood() {
+      const x = food.x * gridSize;
+      const y = food.y * gridSize;
+      const pulse = 1 + Math.sin(foodPulse) * 0.07;
+      const size = (gridSize - 6) * pulse;
+      const offset = (gridSize - size) / 2;
+
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = "rgba(239, 68, 68, 0.32)";
+      ctx.fillStyle = "#ff5b5b";
+      drawRoundedRect(x + offset, y + offset, size, size, 7);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      drawRoundedRect(x + 7, y + 6, 5, 5, 3);
+      ctx.fill();
+    }
+
+    function drawSnake() {
+      const skin = getActiveSkin();
+
+      snake.forEach((segment, index) => {
+        const x = segment.x * gridSize;
+        const y = segment.y * gridSize;
+
+        if (index === 0) {
+          const bob = Math.sin(frameTick * 0.42) * 0.7;
+          const baseScale = 1 + Math.sin(frameTick * 0.42) * 0.02;
+          const scale = baseScale + headPop;
+          const size = (gridSize - 2) * scale;
+          const inset = (gridSize - size) / 2;
+
+          ctx.shadowBlur = 16;
+          ctx.shadowColor = skin.glow;
+          ctx.fillStyle = skin.head;
+          drawRoundedRect(x + inset, y + inset + bob, size, size, 6);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          drawHeadEyes(x, y, bob);
+        } else {
+          ctx.shadowBlur = 7;
+          ctx.shadowColor = skin.glow.replace("0.28", "0.16").replace("0.30", "0.16");
+          ctx.fillStyle = index % 2 === 0 ? skin.bodyA : skin.bodyB;
+          drawRoundedRect(x + 1, y + 1, gridSize - 2, gridSize - 2, 6);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      });
+    }
+
+    function drawHeadEyes(x, y, bob) {
+      ctx.fillStyle = "#07111f";
+
+      let leftEyeX = x + 7;
+      let rightEyeX = x + 13;
+      let eyeY = y + 8 + bob;
+
+      if (lastDirection === "left") {
+        leftEyeX = x + 6;
+        rightEyeX = x + 11;
+      } else if (lastDirection === "right") {
+        leftEyeX = x + 9;
+        rightEyeX = x + 14;
+      } else if (lastDirection === "up") {
+        eyeY = y + 6 + bob;
+      } else if (lastDirection === "down") {
+        eyeY = y + 10 + bob;
+      }
+
+      if (eyeClosedFrames > 0) {
+        ctx.fillRect(leftEyeX - 1.2, eyeY, 2.4, 0.8);
+        ctx.fillRect(rightEyeX - 1.2, eyeY, 2.4, 0.8);
+      } else {
+        ctx.beginPath();
+        ctx.arc(leftEyeX, eyeY, 1.6, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, eyeY, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawRoundedRect(x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function setDirection(dir) {
+      if (dir === "up" && dy !== 1) {
+        dx = 0;
+        dy = -1;
+        lastDirection = "up";
+      } else if (dir === "down" && dy !== -1) {
+        dx = 0;
+        dy = 1;
+        lastDirection = "down";
+      } else if (dir === "left" && dx !== 1) {
+        dx = -1;
+        dy = 0;
+        lastDirection = "left";
+      } else if (dir === "right" && dx !== -1) {
+        dx = 1;
+        dy = 0;
+        lastDirection = "right";
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const isArrow =
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight";
+
+      const isSpace = e.code === "Space";
+
+      if (isArrow || isSpace) {
+        e.preventDefault();
+      }
+
+      if (isSpace) {
+        if (!gameStarted && !isCountingDown) {
+          beginCountdown();
+        }
+        return;
+      }
+
+      if (!gameStarted || isCountingDown) return;
+
+      if (e.key === "ArrowUp") {
+        setDirection("up");
+      } else if (e.key === "ArrowDown") {
+        setDirection("down");
+      } else if (e.key === "ArrowLeft") {
+        setDirection("left");
+      } else if (e.key === "ArrowRight") {
+        setDirection("right");
+      }
+    }, { passive: false });
+
+    canvasWrap.addEventListener("touchstart", (e) => {
+      const touch = e.changedTouches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }, { passive: true });
+
+    canvasWrap.addEventListener("touchend", (e) => {
+      const touch = e.changedTouches[0];
+      const dxSwipe = touch.clientX - touchStartX;
+      const dySwipe = touch.clientY - touchStartY;
+
+      const absX = Math.abs(dxSwipe);
+      const absY = Math.abs(dySwipe);
+      const threshold = 24;
+
+      if (absX < threshold && absY < threshold) return;
+
+      ensureAudio();
+
+      if (!gameStarted && !isCountingDown) {
+        beginCountdown();
+        return;
+      }
+
+      if (isCountingDown) return;
+
+      if (absX > absY) {
+        if (dxSwipe > 0) {
+          setDirection("right");
+        } else {
+          setDirection("left");
+        }
+      } else {
+        if (dySwipe > 0) {
+          setDirection("down");
+        } else {
+          setDirection("up");
+        }
+      }
+    }, { passive: true });
+
+    normalizeSelectedSkin();
+    updateBestHud();
+    renderLeaderboard();
+    renderSkinsPanel();
+    initGame();
+  </script>
+</body>
+</html>
