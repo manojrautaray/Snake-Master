@@ -3,7 +3,7 @@
 A modern take on the classic Snake game with dynamic speed, score multipliers, and distance-based progression. Built for smooth gameplay across desktop and mobile with a clean neon-style UI.
 
 ## 🎮 Play the Game
-👉 https://manojrautaray.github.io/SNAKE-MASTER/
+👉 https://manojrautaray.github.io/Snake-Master/
 
 ## ✨ Features
 - Increasing speed as you grow
