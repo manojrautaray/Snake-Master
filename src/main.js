@@ -2,75 +2,25 @@ import {
   BASE_MS,
   DIST_TICK,
   GRID,
-  MAX_SPD_LV,
   MIN_MS,
-  POOL_SIZE,
-  TWO_PI,
 } from './config.js';
+import {
+  calcInterval,
+  calcMultiplier,
+  calcSpeedLevel,
+  createGameState,
+  keyFor,
+  placeFood,
+  resetGameState,
+  resetHudCache,
+} from './core/game-state.js';
 import { SKINS } from './data/skins.js';
+import { buildGridCache, drawScene } from './render/game-renderer.js';
+import { createAudioController } from './systems/audio.js';
 import { LS } from './systems/storage.js';
 import { EL, ctx } from './ui/dom.js';
-import { darken, lighten } from './utils/colors.js';
-
-let cellSize;
-let gridCanvas;
-
-let snake;
-let snakeSet;
-let dir;
-let nextDir;
-let food;
-let score;
-let distance;
-let multiplier;
-let maxMultiplier;
-let speedLevel;
-let gameRunning = false;
-let gameStarted = false;
-let currentSkin = null;
-
-let rafId = null;
-let lastTickTime = 0;
-let tickInterval = BASE_MS;
-
-let foodAnim = 0;
-let headBob = 0;
-
-const pPool = Array.from({ length: POOL_SIZE }, () => ({
-  alive: false,
-  x: 0,
-  y: 0,
-  vx: 0,
-  vy: 0,
-  alpha: 0,
-  size: 0,
-  color: '',
-}));
-let pActive = 0;
-
-let touchX0 = 0;
-let touchY0 = 0;
-
-let hScoreCache = -1;
-let hMultCache = -1;
-let hDistCache = '';
-let hSpeedCache = -1;
-let hBestCache = -1;
-let hBestDistCache = '';
-
-let audioCtx = null;
-let masterGain = null;
-let bgmRunning = false;
-let bgmScheduleId = null;
-let bgmAtmosOsc = null;
-let bgmAtmosOsc2 = null;
-let bgmPadGain = null;
-let arpStep = 0;
-let arpNextTime = 0;
-
-const ARP_NOTES = [110, 130.81, 164.81, 196, 220, 261.63, 329.63, 392];
-const LOOK_AHEAD = 0.15;
-const SCHEDULE_MS = 70;
+const state = createGameState();
+const audio = createAudioController(() => state.tickInterval, MIN_MS, BASE_MS);
 
 const KEY_MAP = {
   ArrowLeft: { x: -1, y: 0 },
@@ -94,214 +44,8 @@ function resize() {
   EL.hud.style.width = `${size}px`;
   EL.hud.style.maxWidth = `${size}px`;
 
-  cellSize = size / GRID;
-  buildGridCache(size);
-}
-
-function buildGridCache(size) {
-  gridCanvas = document.createElement('canvas');
-  gridCanvas.width = size;
-  gridCanvas.height = size;
-
-  const gc = gridCanvas.getContext('2d');
-  gc.strokeStyle = 'rgba(0,110,150,0.12)';
-  gc.lineWidth = 0.5;
-
-  for (let i = 0; i <= GRID; i++) {
-    const point = i * cellSize;
-    gc.beginPath();
-    gc.moveTo(point, 0);
-    gc.lineTo(point, size);
-    gc.stroke();
-    gc.beginPath();
-    gc.moveTo(0, point);
-    gc.lineTo(size, point);
-    gc.stroke();
-  }
-}
-
-function ensureAudio() {
-  if (!audioCtx) {
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      masterGain = audioCtx.createGain();
-      masterGain.gain.value = 1.0;
-      masterGain.connect(audioCtx.destination);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-
-  return true;
-}
-
-function tone(freq, type, volume, offsetSec, duration) {
-  if (!ensureAudio()) return;
-
-  const time = audioCtx.currentTime + offsetSec;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0, time);
-  gain.gain.linearRampToValueAtTime(volume, time + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-  osc.connect(gain);
-  gain.connect(masterGain);
-  osc.start(time);
-  osc.stop(time + duration + 0.01);
-}
-
-function playEat() {
-  tone(523.25, 'sine', 0.07, 0, 0.10);
-  tone(783.99, 'sine', 0.05, 0.05, 0.09);
-}
-
-function playGameOverSFX() {
-  tone(220, 'triangle', 0.10, 0, 0.30);
-  tone(174.61, 'triangle', 0.08, 0.18, 0.28);
-  tone(130.81, 'triangle', 0.06, 0.35, 0.35);
-}
-
-function playCountdownTick(isGo) {
-  tone(isGo ? 880 : 600, 'sine', 0.15, 0, 0.12);
-}
-
-function softKick(time) {
-  if (!audioCtx) return;
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(80, time);
-  osc.frequency.exponentialRampToValueAtTime(35, time + 0.07);
-  gain.gain.setValueAtTime(0.07, time);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.10);
-  osc.connect(gain);
-  gain.connect(masterGain);
-  osc.start(time);
-  osc.stop(time + 0.11);
-}
-
-function softHat(time, volume) {
-  if (!audioCtx) return;
-
-  const buffer = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate * 0.035), audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-
-  const source = audioCtx.createBufferSource();
-  const hpf = audioCtx.createBiquadFilter();
-  const gain = audioCtx.createGain();
-
-  hpf.type = 'highpass';
-  hpf.frequency.value = 8000;
-  gain.gain.setValueAtTime(volume, time);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.03);
-  source.buffer = buffer;
-  source.connect(hpf);
-  hpf.connect(gain);
-  gain.connect(masterGain);
-  source.start(time);
-  source.stop(time + 0.04);
-}
-
-function getBgmTempo() {
-  const tempoMix = (tickInterval - MIN_MS) / (BASE_MS - MIN_MS);
-  return Math.round(160 - tempoMix * 70);
-}
-
-function scheduleBgm() {
-  if (!bgmRunning || !audioCtx) return;
-
-  const bpm = getBgmTempo();
-  const beatSec = 60 / bpm;
-  const eighth = beatSec / 2;
-
-  while (arpNextTime < audioCtx.currentTime + LOOK_AHEAD) {
-    const step = arpStep % 16;
-
-    if (step === 0 || step === 8) {
-      softKick(arpNextTime);
-    }
-
-    softHat(arpNextTime, step % 2 === 0 ? 0.025 : 0.012);
-
-    if (step === 0) {
-      tone(ARP_NOTES[0], 'sine', 0.04, arpNextTime - audioCtx.currentTime, beatSec * 1.8);
-    }
-
-    if (step % 2 === 0) {
-      const noteIndex = Math.floor(step / 2) % ARP_NOTES.length;
-      const volume = step === 0 ? 0.028 : 0.016;
-      tone(ARP_NOTES[noteIndex], 'sine', volume, arpNextTime - audioCtx.currentTime, eighth * 0.65);
-    }
-
-    arpStep++;
-    arpNextTime += eighth;
-  }
-
-  bgmScheduleId = setTimeout(scheduleBgm, SCHEDULE_MS);
-}
-
-function startBGM() {
-  if (!ensureAudio() || bgmRunning) return;
-
-  bgmRunning = true;
-  arpStep = 0;
-  arpNextTime = audioCtx.currentTime + 0.08;
-
-  bgmAtmosOsc = audioCtx.createOscillator();
-  bgmAtmosOsc2 = audioCtx.createOscillator();
-  bgmPadGain = audioCtx.createGain();
-
-  const lowPass = audioCtx.createBiquadFilter();
-  lowPass.type = 'lowpass';
-  lowPass.frequency.value = 320;
-
-  bgmAtmosOsc.type = 'sine';
-  bgmAtmosOsc.frequency.value = 55.0;
-  bgmAtmosOsc2.type = 'sine';
-  bgmAtmosOsc2.frequency.value = 55.4;
-  bgmPadGain.gain.value = 0.022;
-
-  bgmAtmosOsc.connect(lowPass);
-  bgmAtmosOsc2.connect(lowPass);
-  lowPass.connect(bgmPadGain);
-  bgmPadGain.connect(masterGain);
-  bgmAtmosOsc.start();
-  bgmAtmosOsc2.start();
-
-  scheduleBgm();
-}
-
-function stopBGM() {
-  bgmRunning = false;
-
-  if (bgmScheduleId) {
-    clearTimeout(bgmScheduleId);
-    bgmScheduleId = null;
-  }
-
-  try {
-    bgmAtmosOsc.stop();
-  } catch (_) {}
-
-  try {
-    bgmAtmosOsc2.stop();
-  } catch (_) {}
-
-  bgmAtmosOsc = null;
-  bgmAtmosOsc2 = null;
-  bgmPadGain = null;
+  state.cellSize = size / GRID;
+  state.gridCanvas = buildGridCache(state.cellSize, size);
 }
 
 function triggerScreenShake() {
@@ -316,65 +60,23 @@ function triggerScreenShake() {
   }
 }
 
-function key(x, y) {
-  return x * 100 + y;
-}
-
 function resetGame() {
-  const mid = GRID >> 1;
-  snake = [{ x: mid, y: mid }, { x: mid - 1, y: mid }, { x: mid - 2, y: mid }];
-  snakeSet = new Set(snake.map(segment => key(segment.x, segment.y)));
-  dir = { x: 1, y: 0 };
-  nextDir = { x: 1, y: 0 };
-  score = 0;
-  distance = 0;
-  multiplier = 1;
-  maxMultiplier = 1;
-  speedLevel = 1;
-  tickInterval = BASE_MS;
-  lastTickTime = 0;
-  pActive = 0;
-
-  for (let i = 0; i < POOL_SIZE; i++) {
-    pPool[i].alive = false;
-  }
-
-  placeFood();
-  resetHUDCache();
+  resetGameState(state);
+  placeFood(state);
+  resetHudCache(state.hudCache);
   updateHUD();
 }
 
-function placeFood() {
-  let point;
-  do {
-    point = { x: (Math.random() * GRID) | 0, y: (Math.random() * GRID) | 0 };
-  } while (snakeSet.has(key(point.x, point.y)));
-
-  food = point;
-}
-
-function calcInterval(length) {
-  return Math.round(BASE_MS - (BASE_MS - MIN_MS) * Math.min((length - 3) / 37, 1));
-}
-
-function calcSpeedLevel(intervalMs) {
-  return Math.round(1 + (BASE_MS - intervalMs) / (BASE_MS - MIN_MS) * (MAX_SPD_LV - 1));
-}
-
-function calcMultiplier(length) {
-  return Math.max(1, 1 + Math.floor((length - 3) / 5));
-}
-
 function spawnParticles(gx, gy, color) {
-  const px = (gx + 0.5) * cellSize;
-  const py = (gy + 0.5) * cellSize;
+  const px = (gx + 0.5) * state.cellSize;
+  const py = (gy + 0.5) * state.cellSize;
   let spawned = 0;
 
-  for (let i = 0; i < POOL_SIZE && spawned < 12; i++) {
-    if (pPool[i].alive) continue;
+  for (const particle of state.particles) {
+    if (spawned >= 12) break;
+    if (particle.alive) continue;
 
-    const particle = pPool[i];
-    const angle = Math.random() * TWO_PI;
+    const angle = Math.random() * Math.PI * 2;
     const speed = 1.6 + Math.random() * 2.6;
 
     particle.alive = true;
@@ -385,14 +87,13 @@ function spawnParticles(gx, gy, color) {
     particle.alpha = 1;
     particle.size = 2 + Math.random() * 3;
     particle.color = color;
-    pActive++;
+    state.particleCount++;
     spawned++;
   }
 }
 
 function updateParticles() {
-  for (let i = 0; i < POOL_SIZE; i++) {
-    const particle = pPool[i];
+  for (const particle of state.particles) {
     if (!particle.alive) continue;
 
     particle.x += particle.vx;
@@ -403,117 +104,108 @@ function updateParticles() {
 
     if (particle.alpha < 0.02) {
       particle.alive = false;
-      pActive--;
+      state.particleCount--;
     }
   }
 }
 
 function tick() {
-  dir = nextDir;
-  const nextX = ((snake[0].x + dir.x) % GRID + GRID) % GRID;
-  const nextY = ((snake[0].y + dir.y) % GRID + GRID) % GRID;
-  const nextKey = key(nextX, nextY);
+  state.dir = state.nextDir;
+  const nextX = ((state.snake[0].x + state.dir.x) % GRID + GRID) % GRID;
+  const nextY = ((state.snake[0].y + state.dir.y) % GRID + GRID) % GRID;
+  const nextKey = keyFor(nextX, nextY);
 
-  const tail = snake[snake.length - 1];
-  const tailKey = key(tail.x, tail.y);
-  snakeSet.delete(tailKey);
+  const tail = state.snake[state.snake.length - 1];
+  const tailKey = keyFor(tail.x, tail.y);
+  state.snakeSet.delete(tailKey);
 
-  if (snakeSet.has(nextKey)) {
-    snakeSet.add(tailKey);
+  if (state.snakeSet.has(nextKey)) {
+    state.snakeSet.add(tailKey);
     endGame();
     return;
   }
 
-  snake.unshift({ x: nextX, y: nextY });
-  snakeSet.add(nextKey);
+  state.snake.unshift({ x: nextX, y: nextY });
+  state.snakeSet.add(nextKey);
 
-  const ateFood = nextX === food.x && nextY === food.y;
+  const ateFood = nextX === state.food.x && nextY === state.food.y;
   if (ateFood) {
-    snakeSet.add(tailKey);
-    score += 10 * multiplier;
-    multiplier = calcMultiplier(snake.length);
-    maxMultiplier = Math.max(maxMultiplier, multiplier);
-    tickInterval = calcInterval(snake.length);
-    speedLevel = calcSpeedLevel(tickInterval);
-    playEat();
-    spawnParticles(food.x, food.y, currentSkin.food);
-    placeFood();
+    state.snakeSet.add(tailKey);
+    state.score += 10 * state.multiplier;
+    state.multiplier = calcMultiplier(state.snake.length);
+    state.maxMultiplier = Math.max(state.maxMultiplier, state.multiplier);
+    state.tickInterval = calcInterval(state.snake.length);
+    state.speedLevel = calcSpeedLevel(state.tickInterval);
+    audio.playEat();
+    spawnParticles(state.food.x, state.food.y, state.currentSkin.food);
+    placeFood(state);
   } else {
-    snake.pop();
+    state.snake.pop();
   }
 
-  distance += DIST_TICK;
+  state.distance += DIST_TICK;
   updateHUD();
 }
 
 function updateHUD() {
-  const bestScore = Math.max(LS.getBest(), score);
-  const bestDistance = Math.max(LS.getBestDist(), distance);
-  const distanceLabel = `${distance.toFixed(2)} km`;
+  const bestScore = Math.max(LS.getBest(), state.score);
+  const bestDistance = Math.max(LS.getBestDist(), state.distance);
+  const distanceLabel = `${state.distance.toFixed(2)} km`;
   const bestDistanceLabel = bestDistance.toFixed(2);
 
-  if (score !== hScoreCache) {
-    EL.hScore.textContent = score;
-    hScoreCache = score;
+  if (state.score !== state.hudCache.score) {
+    EL.hScore.textContent = state.score;
+    state.hudCache.score = state.score;
   }
 
-  if (multiplier !== hMultCache) {
-    EL.hMult.textContent = `${multiplier}x`;
-    hMultCache = multiplier;
+  if (state.multiplier !== state.hudCache.multiplier) {
+    EL.hMult.textContent = `${state.multiplier}x`;
+    state.hudCache.multiplier = state.multiplier;
   }
 
-  if (distanceLabel !== hDistCache) {
+  if (distanceLabel !== state.hudCache.distance) {
     EL.hDist.textContent = distanceLabel;
-    hDistCache = distanceLabel;
+    state.hudCache.distance = distanceLabel;
   }
 
-  if (speedLevel !== hSpeedCache) {
-    EL.hSpeed.textContent = speedLevel;
-    hSpeedCache = speedLevel;
+  if (state.speedLevel !== state.hudCache.speedLevel) {
+    EL.hSpeed.textContent = state.speedLevel;
+    state.hudCache.speedLevel = state.speedLevel;
   }
 
-  if (bestScore !== hBestCache) {
+  if (bestScore !== state.hudCache.bestScore) {
     EL.hBest.textContent = bestScore;
-    hBestCache = bestScore;
+    state.hudCache.bestScore = bestScore;
   }
 
-  if (bestDistanceLabel !== hBestDistCache) {
+  if (bestDistanceLabel !== state.hudCache.bestDistance) {
     EL.hBestdist.textContent = bestDistanceLabel;
-    hBestDistCache = bestDistanceLabel;
+    state.hudCache.bestDistance = bestDistanceLabel;
   }
-}
-
-function resetHUDCache() {
-  hScoreCache = -1;
-  hMultCache = -1;
-  hDistCache = '';
-  hSpeedCache = -1;
-  hBestCache = -1;
-  hBestDistCache = '';
 }
 
 function endGame() {
-  gameRunning = false;
-  stopBGM();
-  playGameOverSFX();
+  state.gameRunning = false;
+  audio.stopBGM();
+  audio.playGameOverSFX();
   triggerScreenShake();
 
-  const isNewScore = score > LS.getBest();
-  const isNewDist = distance > LS.getBestDist();
+  const isNewScore = state.score > LS.getBest();
+  const isNewDist = state.distance > LS.getBestDist();
 
   if (isNewScore) {
-    LS.setBest(score);
+    LS.setBest(state.score);
   }
   if (isNewDist) {
-    LS.setBestDist(+distance.toFixed(3));
+    LS.setBestDist(+state.distance.toFixed(3));
   }
 
   renderSkinsPanel();
 
   setTimeout(() => {
-    EL.goScore.textContent = score;
-    EL.goDist.textContent = `${distance.toFixed(2)} km`;
-    EL.goMult.textContent = `${maxMultiplier}x`;
+    EL.goScore.textContent = state.score;
+    EL.goDist.textContent = `${state.distance.toFixed(2)} km`;
+    EL.goMult.textContent = `${state.maxMultiplier}x`;
     EL.goBest.textContent = LS.getBest();
     EL.goBestdist.textContent = `${LS.getBestDist().toFixed(2)} km`;
     EL.goBest.classList.toggle('new-best', isNewScore);
@@ -524,21 +216,21 @@ function endGame() {
 }
 
 function loop(timestamp) {
-  rafId = requestAnimationFrame(loop);
-  foodAnim += 0.07;
-  headBob += 0.10;
+  state.rafId = requestAnimationFrame(loop);
+  state.foodAnim += 0.07;
+  state.headBob += 0.10;
 
-  if (pActive > 0) {
+  if (state.particleCount > 0) {
     updateParticles();
   }
 
-  if (gameRunning) {
-    if (!lastTickTime) {
-      lastTickTime = timestamp;
+  if (state.gameRunning) {
+    if (!state.lastTickTime) {
+      state.lastTickTime = timestamp;
     }
 
-    if (timestamp - lastTickTime >= tickInterval) {
-      lastTickTime += tickInterval;
+    if (timestamp - state.lastTickTime >= state.tickInterval) {
+      state.lastTickTime += state.tickInterval;
       tick();
     }
   }
@@ -547,146 +239,7 @@ function loop(timestamp) {
 }
 
 function draw() {
-  const size = EL.canvas.width;
-  ctx.clearRect(0, 0, size, size);
-
-  if (gridCanvas) {
-    ctx.drawImage(gridCanvas, 0, 0);
-  }
-
-  if (!snake) return;
-
-  drawFood();
-  drawSnake();
-
-  if (pActive > 0) {
-    drawParticles();
-  }
-}
-
-function drawFood() {
-  const skin = currentSkin;
-  const pulse = 0.90 + 0.10 * Math.sin(foodAnim);
-  const pad = cellSize * 0.10;
-  const inner = cellSize - pad * 2;
-  const size = inner * pulse;
-  const centerX = food.x * cellSize + cellSize * 0.5;
-  const centerY = food.y * cellSize + cellSize * 0.5;
-  const x = centerX - size * 0.5;
-  const y = centerY - size * 0.5;
-
-  ctx.save();
-  ctx.shadowColor = skin.foodGlow;
-  ctx.shadowBlur = 10 + 6 * Math.sin(foodAnim);
-
-  const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.72);
-  grad.addColorStop(0, lighten(skin.food, 0.38));
-  grad.addColorStop(0.5, skin.food);
-  grad.addColorStop(1, darken(skin.food, 0.30));
-  ctx.fillStyle = grad;
-  ctx.fillRect(x, y, size, size);
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = 'rgba(255,255,255,0.30)';
-  ctx.fillRect(x + size * 0.12, y + size * 0.12, size * 0.28, size * 0.18);
-  ctx.restore();
-}
-
-function drawSnake() {
-  const skin = currentSkin;
-  const length = snake.length;
-  const pad = cellSize * 0.10;
-  const size = cellSize - pad * 2;
-
-  for (let i = length - 1; i >= 0; i--) {
-    const segment = snake[i];
-    const isHead = i === 0;
-    const bobY = isHead ? Math.sin(headBob) * 1.0 : 0;
-    const x = segment.x * cellSize + pad;
-    const y = segment.y * cellSize + pad + bobY;
-
-    if (isHead) {
-      ctx.shadowColor = skin.glow;
-      ctx.shadowBlur = 14;
-    } else {
-      ctx.shadowBlur = 0;
-    }
-
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = skin.head;
-    ctx.fillRect(x, y, size, size);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,255,255,0.10)';
-    ctx.fillRect(x, y, size, 2);
-    ctx.fillRect(x, y, 2, size);
-
-    if (isHead) {
-      drawEyes(segment, bobY);
-    }
-  }
-
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
-}
-
-function drawEyes(segment, bobY) {
-  const centerX = segment.x * cellSize + cellSize * 0.5;
-  const centerY = segment.y * cellSize + cellSize * 0.5 + bobY;
-  const eyeOffset = cellSize * 0.20;
-  const eyeRadius = cellSize * 0.09;
-  const pupilFactor = 0.52;
-  let eyeOne;
-  let eyeTwo;
-
-  if (dir.x === 1) {
-    eyeOne = { x: centerX + cellSize * 0.13, y: centerY - eyeOffset };
-    eyeTwo = { x: centerX + cellSize * 0.13, y: centerY + eyeOffset };
-  } else if (dir.x === -1) {
-    eyeOne = { x: centerX - cellSize * 0.13, y: centerY - eyeOffset };
-    eyeTwo = { x: centerX - cellSize * 0.13, y: centerY + eyeOffset };
-  } else if (dir.y === -1) {
-    eyeOne = { x: centerX - eyeOffset, y: centerY - cellSize * 0.13 };
-    eyeTwo = { x: centerX + eyeOffset, y: centerY - cellSize * 0.13 };
-  } else {
-    eyeOne = { x: centerX - eyeOffset, y: centerY + cellSize * 0.13 };
-    eyeTwo = { x: centerX + eyeOffset, y: centerY + cellSize * 0.13 };
-  }
-
-  const pupilX = dir.x * eyeRadius * pupilFactor;
-  const pupilY = dir.y * eyeRadius * pupilFactor;
-
-  [eyeOne, eyeTwo].forEach(eye => {
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(eye.x, eye.y, eyeRadius, 0, TWO_PI);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(eye.x + pupilX, eye.y + pupilY, eyeRadius * 0.54, 0, TWO_PI);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.68)';
-    ctx.beginPath();
-    ctx.arc(eye.x + pupilX - eyeRadius * 0.2, eye.y + pupilY - eyeRadius * 0.2, eyeRadius * 0.22, 0, TWO_PI);
-    ctx.fill();
-  });
-}
-
-function drawParticles() {
-  for (let i = 0; i < POOL_SIZE; i++) {
-    const particle = pPool[i];
-    if (!particle.alive) continue;
-
-    ctx.globalAlpha = particle.alpha;
-    ctx.fillStyle = particle.color;
-    ctx.shadowColor = particle.color;
-    ctx.shadowBlur = 3;
-    ctx.beginPath();
-    ctx.arc(particle.x, particle.y, particle.size, 0, TWO_PI);
-    ctx.fill();
-  }
-
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
+  drawScene(ctx, EL.canvas, state);
 }
 
 function onKeyDown(event) {
@@ -695,46 +248,46 @@ function onKeyDown(event) {
   }
 
   if (event.code === 'Space') {
-    if (!gameStarted) {
+    if (!state.gameStarted) {
       startWithCountdown();
     }
     return;
   }
 
-  if (!gameRunning) return;
+  if (!state.gameRunning) return;
 
   const nextDirection = KEY_MAP[event.code];
-  if (nextDirection && !(nextDirection.x === -dir.x && nextDirection.y === -dir.y)) {
-    nextDir = nextDirection;
+  if (nextDirection && !(nextDirection.x === -state.dir.x && nextDirection.y === -state.dir.y)) {
+    state.nextDir = nextDirection;
   }
 }
 
 function onTouchStart(event) {
   event.preventDefault();
-  touchX0 = event.touches[0].clientX;
-  touchY0 = event.touches[0].clientY;
+  state.touchX0 = event.touches[0].clientX;
+  state.touchY0 = event.touches[0].clientY;
 }
 
 function onTouchEnd(event) {
   event.preventDefault();
-  const dx = event.changedTouches[0].clientX - touchX0;
-  const dy = event.changedTouches[0].clientY - touchY0;
+  const dx = event.changedTouches[0].clientX - state.touchX0;
+  const dy = event.changedTouches[0].clientY - state.touchY0;
 
   if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
 
-  if (!gameStarted) {
+  if (!state.gameStarted) {
     startWithCountdown();
     return;
   }
 
-  if (!gameRunning) return;
+  if (!state.gameRunning) return;
 
   const nextDirection = Math.abs(dx) > Math.abs(dy)
     ? (dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 })
     : (dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 });
 
-  if (!(nextDirection.x === -dir.x && nextDirection.y === -dir.y)) {
-    nextDir = nextDirection;
+  if (!(nextDirection.x === -state.dir.x && nextDirection.y === -state.dir.y)) {
+    state.nextDir = nextDirection;
   }
 }
 
@@ -743,7 +296,7 @@ function renderSkinsPanel() {
 
   SKINS.forEach(skin => {
     const unlocked = skin.cond();
-    const selected = skin.id === currentSkin.id;
+    const selected = skin.id === state.currentSkin.id;
     const card = document.createElement('div');
     card.className = `skin-card${selected ? ' selected' : ''}${unlocked ? '' : ' locked'}`;
 
@@ -784,7 +337,7 @@ function renderSkinsPanel() {
     card.append(preview, info, badge);
     if (unlocked) {
       card.addEventListener('click', () => {
-        currentSkin = skin;
+        state.currentSkin = skin;
         LS.setSkin(skin.id);
         renderSkinsPanel();
       });
@@ -795,9 +348,9 @@ function renderSkinsPanel() {
 }
 
 function showStartScreen() {
-  gameStarted = false;
-  gameRunning = false;
-  stopBGM();
+  state.gameStarted = false;
+  state.gameRunning = false;
+  audio.stopBGM();
   document.body.classList.add('menu-open');
   EL.startOv.classList.remove('hidden');
   EL.goOv.classList.add('hidden');
@@ -808,10 +361,10 @@ function showStartScreen() {
 }
 
 function startWithCountdown() {
-  if (gameStarted) return;
+  if (state.gameStarted) return;
 
-  gameStarted = true;
-  ensureAudio();
+  state.gameStarted = true;
+  audio.ensureAudio();
   document.body.classList.remove('menu-open');
   EL.startOv.classList.add('hidden');
   resetGame();
@@ -826,14 +379,14 @@ function runCountdown() {
   function showStep() {
     if (index >= steps.length) {
       EL.cdWrap.style.display = 'none';
-      lastTickTime = 0;
-      gameRunning = true;
-      startBGM();
+      state.lastTickTime = 0;
+      state.gameRunning = true;
+      audio.startBGM();
       return;
     }
 
     const isGo = steps[index] === 'GO!';
-    playCountdownTick(isGo);
+    audio.playCountdownTick(isGo);
 
     const countdownEl = EL.cdNum;
     countdownEl.style.transition = 'none';
@@ -859,7 +412,7 @@ function runCountdown() {
 }
 
 function init() {
-  currentSkin = SKINS.find(skin => skin.id === LS.getSkin()) || SKINS[0];
+  state.currentSkin = SKINS.find(skin => skin.id === LS.getSkin()) || SKINS[0];
 
   resize();
   window.addEventListener('resize', resize);
@@ -872,7 +425,7 @@ function init() {
   EL.restartBtn.addEventListener('click', () => {
     document.body.classList.remove('menu-open');
     EL.goOv.classList.add('hidden');
-    gameStarted = false;
+    state.gameStarted = false;
     startWithCountdown();
   });
 
@@ -882,7 +435,7 @@ function init() {
   });
 
   showStartScreen();
-  rafId = requestAnimationFrame(loop);
+  state.rafId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('DOMContentLoaded', init);
