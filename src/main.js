@@ -72,11 +72,16 @@ function getModeBestDistance() {
   return LS.getBestDist(state.currentMode.id);
 }
 
+function getStatsSnapshot() {
+  return LS.getStats();
+}
+
 function updateModeUI() {
   const isTimedMode = Boolean(state.currentMode.timerSeconds);
   EL.hSpeedLabel.textContent = isTimedMode ? 'Time' : 'Speed';
   EL.goBestHeader.textContent = `${state.currentMode.name} Bests`;
   EL.startBtn.textContent = `START ${state.currentMode.name.toUpperCase()}`;
+  EL.statsPanelTitle.textContent = `${state.currentMode.name} Stats`;
 }
 
 function setMode(modeId) {
@@ -85,6 +90,7 @@ function setMode(modeId) {
   LS.setMode(nextMode.id);
   updateModeUI();
   renderModesPanel();
+  renderStatsPanel();
   resetGame();
 }
 
@@ -163,6 +169,7 @@ function tick() {
   const ateFood = nextX === state.food.x && nextY === state.food.y;
   if (ateFood) {
     state.snakeSet.add(tailKey);
+    state.foodEaten += 1;
     const points = Math.round(10 * state.multiplier * state.currentMode.scoreBonus);
     state.score += points;
     state.multiplier = calcMultiplier(state.snake.length, state.currentMode);
@@ -239,6 +246,15 @@ function persistRecords() {
   if (state.distance > globalBestDistance) {
     LS.setBestDist(+state.distance.toFixed(3));
   }
+
+  return LS.recordRun({
+    modeId,
+    score: state.score,
+    distance: +state.distance.toFixed(3),
+    durationSeconds: getRunDurationSeconds(),
+    foodEaten: state.foodEaten,
+    maxMultiplier: state.maxMultiplier,
+  });
 }
 
 function endGame() {
@@ -252,6 +268,7 @@ function endGame() {
   persistRecords();
   renderModesPanel();
   renderSkinsPanel();
+  renderStatsPanel();
 
   setTimeout(() => {
     EL.goModeLabel.textContent = `${state.currentMode.name} • ${state.gameOverReason === 'timeout' ? 'Time Up' : 'This Run'}`;
@@ -466,6 +483,48 @@ function renderSkinsPanel() {
   });
 }
 
+function renderStatsPanel() {
+  const stats = getStatsSnapshot();
+  const lifetime = stats.lifetime;
+  const modeStats = stats.modes[state.currentMode.id] || {
+    gamesPlayed: 0,
+    foodEaten: 0,
+    totalDistance: 0,
+    totalScore: 0,
+    totalSeconds: 0,
+    bestMultiplier: 1,
+    lastScore: 0,
+    lastDistance: 0,
+    lastDuration: 0,
+  };
+
+  const cards = [
+    { label: 'Runs', value: formatCompactInt(modeStats.gamesPlayed), tone: 'gold' },
+    { label: 'Food', value: formatCompactInt(modeStats.foodEaten), tone: 'green' },
+    { label: 'Best Multi', value: `${modeStats.bestMultiplier}x`, tone: 'pink' },
+    { label: 'Mode Time', value: formatSeconds(modeStats.totalSeconds), tone: '' },
+    { label: 'Lifetime Runs', value: formatCompactInt(lifetime.gamesPlayed), tone: 'gold' },
+    { label: 'Lifetime Km', value: `${lifetime.totalDistance.toFixed(1)} km`, tone: 'green' },
+  ];
+
+  EL.statsGrid.innerHTML = '';
+  cards.forEach(card => {
+    const panel = document.createElement('div');
+    panel.className = 'stat-card';
+
+    const label = document.createElement('div');
+    label.className = 'stat-label';
+    label.textContent = card.label;
+
+    const value = document.createElement('div');
+    value.className = `stat-value${card.tone ? ` ${card.tone}` : ''}`;
+    value.textContent = card.value;
+
+    panel.append(label, value);
+    EL.statsGrid.appendChild(panel);
+  });
+}
+
 function showStartScreen() {
   state.gameStarted = false;
   state.gameRunning = false;
@@ -476,6 +535,7 @@ function showStartScreen() {
   updateModeUI();
   renderModesPanel();
   renderSkinsPanel();
+  renderStatsPanel();
   resetGame();
 }
 
@@ -561,3 +621,25 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+function getRunDurationSeconds() {
+  const modeDuration = state.currentMode.timerSeconds;
+  if (modeDuration) {
+    return +(modeDuration - state.modeTimeLeft).toFixed(1);
+  }
+
+  const baseTick = state.currentMode.baseTickMs || BASE_MS;
+  return +((state.distance / DIST_TICK) * baseTick / 1000).toFixed(1);
+}
+
+function formatCompactInt(value) {
+  return new Intl.NumberFormat('en-US', { notation: value >= 1000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value);
+}
+
+function formatSeconds(value) {
+  if (!value) return '0:00';
+  const total = Math.round(value);
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}

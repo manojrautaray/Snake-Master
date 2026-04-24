@@ -10,6 +10,8 @@ export const EL = {
   cdNum: byId('cd-num'),
   modesGrid: byId('modes-grid'),
   skinsGrid: byId('skins-grid'),
+  statsGrid: byId('stats-grid'),
+  statsPanelTitle: byId('stats-panel-title'),
   startBtn: byId('start-btn'),
   restartBtn: byId('restart-btn'),
   homeBtn: byId('home-btn'),

@@ -22,6 +22,7 @@ export function createGameState() {
     modeTimeTotal: 0,
     lastFrameTime: 0,
     gameOverReason: 'collision',
+    foodEaten: 0,
     rafId: null,
     lastTickTime: 0,
     tickInterval: BASE_MS,
@@ -103,6 +104,7 @@ export function resetGameState(state) {
   state.modeTimeLeft = state.modeTimeTotal;
   state.lastFrameTime = 0;
   state.gameOverReason = 'collision';
+  state.foodEaten = 0;
   state.lastTickTime = 0;
   state.particleCount = 0;
 

@@ -31,6 +31,12 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added mode selection UI to the start screen and persisted the selected mode in storage
 - Added mode-specific rules for wall behavior, timer handling, score bonuses, and best-score tracking
 
+## v0.008
+
+- Added a persistent stats layer for lifetime and per-mode progression
+- Tracked runs played, food eaten, total time, total distance, and best multiplier
+- Added a start-screen stats panel so progression is visible between runs
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version

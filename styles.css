@@ -278,6 +278,46 @@ body::after {
   color: var(--muted);
 }
 
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.stat-card {
+  background: rgba(0,8,22,0.72);
+  border: 1px solid rgba(0,234,255,0.12);
+  border-radius: 9px;
+  padding: 8px 9px;
+}
+.stat-label {
+  font-size: 8px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.stat-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: 0 0 6px rgba(0,234,255,0.22);
+  line-height: 1.2;
+}
+.stat-value.gold {
+  color: var(--gold);
+  text-shadow: 0 0 6px rgba(255,215,0,0.22);
+}
+.stat-value.green {
+  color: var(--green);
+  text-shadow: 0 0 6px rgba(0,255,136,0.22);
+}
+.stat-value.pink {
+  color: var(--pink);
+  text-shadow: 0 0 6px rgba(255,45,120,0.22);
+}
+
 /* Skins */
 .skins-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 7px; }
 .skin-card {
