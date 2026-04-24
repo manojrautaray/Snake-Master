@@ -37,6 +37,12 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Tracked runs played, food eaten, total time, total distance, and best multiplier
 - Added a start-screen stats panel so progression is visible between runs
 
+## v0.009
+
+- Simplified the home screen by moving How to Play, Stats, and Achievements behind compact buttons
+- Reused one focused home detail panel so informational sections no longer stack on the start screen
+- Added an Achievements panel preview ahead of the full achievement system
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version

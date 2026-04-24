@@ -26,6 +26,26 @@ const KEY_MAP = {
   ArrowDown: { x: 0, y: 1 },
 };
 
+const HOME_PANELS = {
+  how: {
+    title: 'How to Play',
+    button: () => EL.homeHowBtn,
+    panel: () => EL.homeHowPanel,
+  },
+  stats: {
+    title: 'Stats',
+    button: () => EL.homeStatsBtn,
+    panel: () => EL.homeStatsPanel,
+  },
+  achievements: {
+    title: 'Achievements',
+    button: () => EL.homeAchievementsBtn,
+    panel: () => EL.homeAchievementsPanel,
+  },
+};
+
+let activeHomePanel = null;
+
 function resize() {
   const hudHeight = EL.hud.getBoundingClientRect().height || 38;
   const availW = window.innerWidth - 8;
@@ -81,7 +101,9 @@ function updateModeUI() {
   EL.hSpeedLabel.textContent = isTimedMode ? 'Time' : 'Speed';
   EL.goBestHeader.textContent = `${state.currentMode.name} Bests`;
   EL.startBtn.textContent = `START ${state.currentMode.name.toUpperCase()}`;
-  EL.statsPanelTitle.textContent = `${state.currentMode.name} Stats`;
+  if (activeHomePanel === 'stats') {
+    EL.homeInfoTitle.textContent = `${state.currentMode.name} Stats`;
+  }
 }
 
 function setMode(modeId) {
@@ -525,6 +547,39 @@ function renderStatsPanel() {
   });
 }
 
+function showHomePanel(panelId) {
+  if (activeHomePanel === panelId) {
+    hideHomePanel();
+    return;
+  }
+
+  activeHomePanel = panelId;
+  EL.homeInfoPanel.classList.remove('hidden');
+
+  Object.entries(HOME_PANELS).forEach(([id, config]) => {
+    config.panel().classList.toggle('hidden', id !== panelId);
+    config.button().classList.toggle('active', id === panelId);
+  });
+
+  EL.homeInfoTitle.textContent = panelId === 'stats'
+    ? `${state.currentMode.name} Stats`
+    : HOME_PANELS[panelId].title;
+
+  if (panelId === 'stats') {
+    renderStatsPanel();
+  }
+}
+
+function hideHomePanel() {
+  activeHomePanel = null;
+  EL.homeInfoPanel.classList.add('hidden');
+
+  Object.values(HOME_PANELS).forEach(config => {
+    config.panel().classList.add('hidden');
+    config.button().classList.remove('active');
+  });
+}
+
 function showStartScreen() {
   state.gameStarted = false;
   state.gameRunning = false;
@@ -536,6 +591,7 @@ function showStartScreen() {
   renderModesPanel();
   renderSkinsPanel();
   renderStatsPanel();
+  hideHomePanel();
   resetGame();
 }
 
@@ -603,6 +659,9 @@ function init() {
   EL.canvas.addEventListener('touchend', onTouchEnd, { passive: false });
 
   EL.startBtn.addEventListener('click', startWithCountdown);
+  EL.homeHowBtn.addEventListener('click', () => showHomePanel('how'));
+  EL.homeStatsBtn.addEventListener('click', () => showHomePanel('stats'));
+  EL.homeAchievementsBtn.addEventListener('click', () => showHomePanel('achievements'));
 
   EL.restartBtn.addEventListener('click', () => {
     document.body.classList.remove('menu-open');
