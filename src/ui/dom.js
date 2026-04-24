@@ -8,22 +8,25 @@ export const EL = {
   goOv: byId('go-overlay'),
   cdWrap: byId('cd-wrap'),
   cdNum: byId('cd-num'),
+  modesGrid: byId('modes-grid'),
   skinsGrid: byId('skins-grid'),
   startBtn: byId('start-btn'),
   restartBtn: byId('restart-btn'),
   homeBtn: byId('home-btn'),
+  hSpeedLabel: byId('h-speed-label'),
   hScore: byId('h-score'),
   hMult: byId('h-mult'),
   hDist: byId('h-dist'),
   hSpeed: byId('h-speed'),
   hBest: byId('h-best'),
   hBestdist: byId('h-bestdist'),
+  goModeLabel: byId('go-mode-label'),
   goScore: byId('go-score'),
   goBest: byId('go-best'),
+  goBestHeader: byId('go-best-header'),
   goDist: byId('go-dist'),
   goBestdist: byId('go-bestdist'),
   goMult: byId('go-mult'),
 };
 
 export const ctx = EL.canvas.getContext('2d');
-

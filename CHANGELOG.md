@@ -25,6 +25,12 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added `src/render/game-renderer.js` to own canvas drawing and grid rendering
 - Added `src/systems/audio.js` so `src/main.js` now focuses more on game flow orchestration
 
+## v0.007
+
+- Added a real game mode system with `Classic`, `Time Attack`, and `Hardcore`
+- Added mode selection UI to the start screen and persisted the selected mode in storage
+- Added mode-specific rules for wall behavior, timer handling, score bonuses, and best-score tracking
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version

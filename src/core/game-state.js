@@ -17,6 +17,11 @@ export function createGameState() {
     gameRunning: false,
     gameStarted: false,
     currentSkin: null,
+    currentMode: null,
+    modeTimeLeft: 0,
+    modeTimeTotal: 0,
+    lastFrameTime: 0,
+    gameOverReason: 'collision',
     rafId: null,
     lastTickTime: 0,
     tickInterval: BASE_MS,
@@ -67,19 +72,22 @@ export function keyFor(x, y) {
   return x * 100 + y;
 }
 
-export function calcInterval(length) {
-  return Math.round(BASE_MS - (BASE_MS - MIN_MS) * Math.min((length - 3) / 37, 1));
+export function calcInterval(length, mode) {
+  return Math.round(getModeBaseTick(mode) - (getModeBaseTick(mode) - getModeMinTick(mode)) * Math.min((length - 3) / 37, 1));
 }
 
-export function calcSpeedLevel(intervalMs) {
-  return Math.round(1 + (BASE_MS - intervalMs) / (BASE_MS - MIN_MS) * (MAX_SPD_LV - 1));
+export function calcSpeedLevel(intervalMs, mode) {
+  const baseTick = getModeBaseTick(mode);
+  const minTick = getModeMinTick(mode);
+  return Math.round(1 + (baseTick - intervalMs) / (baseTick - minTick) * (MAX_SPD_LV - 1));
 }
 
-export function calcMultiplier(length) {
-  return Math.max(1, 1 + Math.floor((length - 3) / 5));
+export function calcMultiplier(length, mode) {
+  return Math.max(1, 1 + Math.floor((length - 3) / getMultiplierStep(mode)));
 }
 
 export function resetGameState(state) {
+  const mode = state.currentMode;
   const mid = GRID >> 1;
   state.snake = [{ x: mid, y: mid }, { x: mid - 1, y: mid }, { x: mid - 2, y: mid }];
   state.snakeSet = new Set(state.snake.map(segment => keyFor(segment.x, segment.y)));
@@ -89,8 +97,12 @@ export function resetGameState(state) {
   state.distance = 0;
   state.multiplier = 1;
   state.maxMultiplier = 1;
-  state.speedLevel = 1;
-  state.tickInterval = BASE_MS;
+  state.tickInterval = getModeBaseTick(mode);
+  state.speedLevel = calcSpeedLevel(state.tickInterval, mode);
+  state.modeTimeTotal = mode?.timerSeconds || 0;
+  state.modeTimeLeft = state.modeTimeTotal;
+  state.lastFrameTime = 0;
+  state.gameOverReason = 'collision';
   state.lastTickTime = 0;
   state.particleCount = 0;
 
@@ -106,4 +118,16 @@ export function placeFood(state) {
   } while (state.snakeSet.has(keyFor(point.x, point.y)));
 
   state.food = point;
+}
+
+function getModeBaseTick(mode) {
+  return mode?.baseTickMs ?? BASE_MS;
+}
+
+function getModeMinTick(mode) {
+  return mode?.minTickMs ?? MIN_MS;
+}
+
+function getMultiplierStep(mode) {
+  return mode?.multiplierStep ?? 5;
 }

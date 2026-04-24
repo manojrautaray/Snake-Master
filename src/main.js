@@ -1,9 +1,4 @@
-import {
-  BASE_MS,
-  DIST_TICK,
-  GRID,
-  MIN_MS,
-} from './config.js';
+import { BASE_MS, DIST_TICK, GRID, MIN_MS } from './config.js';
 import {
   calcInterval,
   calcMultiplier,
@@ -14,11 +9,13 @@ import {
   resetGameState,
   resetHudCache,
 } from './core/game-state.js';
+import { MODES } from './data/modes.js';
 import { SKINS } from './data/skins.js';
 import { buildGridCache, drawScene } from './render/game-renderer.js';
 import { createAudioController } from './systems/audio.js';
 import { LS } from './systems/storage.js';
 import { EL, ctx } from './ui/dom.js';
+
 const state = createGameState();
 const audio = createAudioController(() => state.tickInterval, MIN_MS, BASE_MS);
 
@@ -67,6 +64,30 @@ function resetGame() {
   updateHUD();
 }
 
+function getModeBestScore() {
+  return LS.getBest(state.currentMode.id);
+}
+
+function getModeBestDistance() {
+  return LS.getBestDist(state.currentMode.id);
+}
+
+function updateModeUI() {
+  const isTimedMode = Boolean(state.currentMode.timerSeconds);
+  EL.hSpeedLabel.textContent = isTimedMode ? 'Time' : 'Speed';
+  EL.goBestHeader.textContent = `${state.currentMode.name} Bests`;
+  EL.startBtn.textContent = `START ${state.currentMode.name.toUpperCase()}`;
+}
+
+function setMode(modeId) {
+  const nextMode = MODES.find(mode => mode.id === modeId) || MODES[0];
+  state.currentMode = nextMode;
+  LS.setMode(nextMode.id);
+  updateModeUI();
+  renderModesPanel();
+  resetGame();
+}
+
 function spawnParticles(gx, gy, color) {
   const px = (gx + 0.5) * state.cellSize;
   const py = (gy + 0.5) * state.cellSize;
@@ -111,8 +132,18 @@ function updateParticles() {
 
 function tick() {
   state.dir = state.nextDir;
-  const nextX = ((state.snake[0].x + state.dir.x) % GRID + GRID) % GRID;
-  const nextY = ((state.snake[0].y + state.dir.y) % GRID + GRID) % GRID;
+
+  const rawNextX = state.snake[0].x + state.dir.x;
+  const rawNextY = state.snake[0].y + state.dir.y;
+  const hitWall = rawNextX < 0 || rawNextX >= GRID || rawNextY < 0 || rawNextY >= GRID;
+  if (!state.currentMode.wrapWalls && hitWall) {
+    state.gameOverReason = 'wall';
+    endGame();
+    return;
+  }
+
+  const nextX = ((rawNextX % GRID) + GRID) % GRID;
+  const nextY = ((rawNextY % GRID) + GRID) % GRID;
   const nextKey = keyFor(nextX, nextY);
 
   const tail = state.snake[state.snake.length - 1];
@@ -121,6 +152,7 @@ function tick() {
 
   if (state.snakeSet.has(nextKey)) {
     state.snakeSet.add(tailKey);
+    state.gameOverReason = 'collision';
     endGame();
     return;
   }
@@ -131,11 +163,12 @@ function tick() {
   const ateFood = nextX === state.food.x && nextY === state.food.y;
   if (ateFood) {
     state.snakeSet.add(tailKey);
-    state.score += 10 * state.multiplier;
-    state.multiplier = calcMultiplier(state.snake.length);
+    const points = Math.round(10 * state.multiplier * state.currentMode.scoreBonus);
+    state.score += points;
+    state.multiplier = calcMultiplier(state.snake.length, state.currentMode);
     state.maxMultiplier = Math.max(state.maxMultiplier, state.multiplier);
-    state.tickInterval = calcInterval(state.snake.length);
-    state.speedLevel = calcSpeedLevel(state.tickInterval);
+    state.tickInterval = calcInterval(state.snake.length, state.currentMode);
+    state.speedLevel = calcSpeedLevel(state.tickInterval, state.currentMode);
     audio.playEat();
     spawnParticles(state.food.x, state.food.y, state.currentSkin.food);
     placeFood(state);
@@ -148,10 +181,13 @@ function tick() {
 }
 
 function updateHUD() {
-  const bestScore = Math.max(LS.getBest(), state.score);
-  const bestDistance = Math.max(LS.getBestDist(), state.distance);
+  const bestScore = getModeBestScore();
+  const bestDistance = getModeBestDistance();
   const distanceLabel = `${state.distance.toFixed(2)} km`;
   const bestDistanceLabel = bestDistance.toFixed(2);
+  const speedDisplay = state.currentMode.timerSeconds
+    ? `${Math.ceil(Math.max(state.modeTimeLeft, 0))}s`
+    : String(state.speedLevel);
 
   if (state.score !== state.hudCache.score) {
     EL.hScore.textContent = state.score;
@@ -168,9 +204,9 @@ function updateHUD() {
     state.hudCache.distance = distanceLabel;
   }
 
-  if (state.speedLevel !== state.hudCache.speedLevel) {
-    EL.hSpeed.textContent = state.speedLevel;
-    state.hudCache.speedLevel = state.speedLevel;
+  if (speedDisplay !== state.hudCache.speedLevel) {
+    EL.hSpeed.textContent = speedDisplay;
+    state.hudCache.speedLevel = speedDisplay;
   }
 
   if (bestScore !== state.hudCache.bestScore) {
@@ -184,30 +220,46 @@ function updateHUD() {
   }
 }
 
+function persistRecords() {
+  const modeId = state.currentMode.id;
+  const bestScore = getModeBestScore();
+  const bestDistance = getModeBestDistance();
+  const globalBest = LS.getBest();
+  const globalBestDistance = LS.getBestDist();
+
+  if (state.score > bestScore) {
+    LS.setBest(state.score, modeId);
+  }
+  if (state.distance > bestDistance) {
+    LS.setBestDist(+state.distance.toFixed(3), modeId);
+  }
+  if (state.score > globalBest) {
+    LS.setBest(state.score);
+  }
+  if (state.distance > globalBestDistance) {
+    LS.setBestDist(+state.distance.toFixed(3));
+  }
+}
+
 function endGame() {
   state.gameRunning = false;
   audio.stopBGM();
   audio.playGameOverSFX();
   triggerScreenShake();
 
-  const isNewScore = state.score > LS.getBest();
-  const isNewDist = state.distance > LS.getBestDist();
-
-  if (isNewScore) {
-    LS.setBest(state.score);
-  }
-  if (isNewDist) {
-    LS.setBestDist(+state.distance.toFixed(3));
-  }
-
+  const isNewScore = state.score > getModeBestScore();
+  const isNewDist = state.distance > getModeBestDistance();
+  persistRecords();
+  renderModesPanel();
   renderSkinsPanel();
 
   setTimeout(() => {
+    EL.goModeLabel.textContent = `${state.currentMode.name} • ${state.gameOverReason === 'timeout' ? 'Time Up' : 'This Run'}`;
     EL.goScore.textContent = state.score;
     EL.goDist.textContent = `${state.distance.toFixed(2)} km`;
     EL.goMult.textContent = `${state.maxMultiplier}x`;
-    EL.goBest.textContent = LS.getBest();
-    EL.goBestdist.textContent = `${LS.getBestDist().toFixed(2)} km`;
+    EL.goBest.textContent = getModeBestScore();
+    EL.goBestdist.textContent = `${getModeBestDistance().toFixed(2)} km`;
     EL.goBest.classList.toggle('new-best', isNewScore);
     EL.goBestdist.classList.toggle('new-best', isNewDist);
     document.body.classList.add('menu-open');
@@ -225,6 +277,23 @@ function loop(timestamp) {
   }
 
   if (state.gameRunning) {
+    if (!state.lastFrameTime) {
+      state.lastFrameTime = timestamp;
+    }
+    const frameDelta = timestamp - state.lastFrameTime;
+    state.lastFrameTime = timestamp;
+
+    if (state.currentMode.timerSeconds) {
+      state.modeTimeLeft = Math.max(0, state.modeTimeLeft - frameDelta / 1000);
+      updateHUD();
+      if (state.modeTimeLeft <= 0) {
+        state.gameOverReason = 'timeout';
+        endGame();
+        draw();
+        return;
+      }
+    }
+
     if (!state.lastTickTime) {
       state.lastTickTime = timestamp;
     }
@@ -291,6 +360,56 @@ function onTouchEnd(event) {
   }
 }
 
+function renderModesPanel() {
+  EL.modesGrid.innerHTML = '';
+
+  MODES.forEach(mode => {
+    const selected = mode.id === state.currentMode.id;
+    const card = document.createElement('div');
+    card.className = `mode-card${selected ? ' selected' : ''}`;
+    card.style.borderColor = selected ? mode.accent : '';
+
+    const top = document.createElement('div');
+    top.className = 'mode-top';
+
+    const name = document.createElement('div');
+    name.className = 'mode-name';
+    name.textContent = mode.name;
+    name.style.color = mode.accent;
+
+    const tag = document.createElement('div');
+    tag.className = 'mode-tag';
+    tag.textContent = mode.tag;
+    tag.style.color = mode.accent;
+
+    top.append(name, tag);
+
+    const desc = document.createElement('div');
+    desc.className = 'mode-desc';
+    desc.textContent = mode.description;
+
+    const meta = document.createElement('div');
+    meta.className = 'mode-meta';
+
+    const chipOne = document.createElement('div');
+    chipOne.className = 'mode-chip';
+    chipOne.textContent = mode.wrapWalls ? 'Wrap Walls' : 'Solid Walls';
+
+    const chipTwo = document.createElement('div');
+    chipTwo.className = 'mode-chip';
+    chipTwo.textContent = mode.timerSeconds ? `${mode.timerSeconds}s Timer` : `${mode.scoreBonus}x Score`;
+
+    const chipThree = document.createElement('div');
+    chipThree.className = 'mode-chip';
+    chipThree.textContent = `${mode.baseTickMs}ms Start`;
+
+    meta.append(chipOne, chipTwo, chipThree);
+    card.append(top, desc, meta);
+    card.addEventListener('click', () => setMode(mode.id));
+    EL.modesGrid.appendChild(card);
+  });
+}
+
 function renderSkinsPanel() {
   EL.skinsGrid.innerHTML = '';
 
@@ -332,7 +451,7 @@ function renderSkinsPanel() {
 
     const badge = document.createElement('div');
     badge.className = `skin-badge${unlocked ? '' : ' locked'}`;
-    badge.textContent = unlocked ? (selected ? 'ON' : 'USE') : '🔒';
+    badge.textContent = unlocked ? (selected ? 'ON' : 'USE') : 'LOCK';
 
     card.append(preview, info, badge);
     if (unlocked) {
@@ -354,10 +473,10 @@ function showStartScreen() {
   document.body.classList.add('menu-open');
   EL.startOv.classList.remove('hidden');
   EL.goOv.classList.add('hidden');
+  updateModeUI();
+  renderModesPanel();
   renderSkinsPanel();
   resetGame();
-  EL.hBest.textContent = LS.getBest();
-  EL.hBestdist.textContent = LS.getBestDist().toFixed(2);
 }
 
 function startWithCountdown() {
@@ -380,6 +499,7 @@ function runCountdown() {
     if (index >= steps.length) {
       EL.cdWrap.style.display = 'none';
       state.lastTickTime = 0;
+      state.lastFrameTime = 0;
       state.gameRunning = true;
       audio.startBGM();
       return;
@@ -413,8 +533,10 @@ function runCountdown() {
 
 function init() {
   state.currentSkin = SKINS.find(skin => skin.id === LS.getSkin()) || SKINS[0];
+  state.currentMode = MODES.find(mode => mode.id === LS.getMode()) || MODES[0];
 
   resize();
+  updateModeUI();
   window.addEventListener('resize', resize);
   window.addEventListener('keydown', onKeyDown);
   EL.canvas.addEventListener('touchstart', onTouchStart, { passive: false });

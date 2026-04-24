@@ -27,7 +27,7 @@
     </div>
     <div class="hud-div"></div>
     <div class="hud-cell">
-      <div class="hud-label">Speed</div>
+      <div class="hud-label" id="h-speed-label">Speed</div>
       <div class="hud-value" id="h-speed">1</div>
     </div>
     <div class="hud-div"></div>
@@ -50,6 +50,11 @@
     <div class="overlay" id="start-overlay">
       <div class="game-title">SNAKE MASTER</div>
       <div class="subtitle">Neon Edition</div>
+
+      <div class="glass-panel">
+        <div class="panel-title">Choose Mode</div>
+        <div class="modes-grid" id="modes-grid"></div>
+      </div>
 
       <div class="glass-panel">
         <div class="panel-title">How to Play</div>
@@ -79,7 +84,7 @@
 
       <!-- THIS RUN — big & prominent -->
       <div class="go-run-panel">
-        <div class="go-run-label">This Run</div>
+        <div class="go-run-label" id="go-mode-label">This Run</div>
         <div class="go-score" id="go-score">0</div>
         <div class="go-run-stats">
           <div class="go-run-stat">
@@ -95,7 +100,7 @@
 
       <!-- BEST — quieter, smaller -->
       <div class="go-best-panel">
-        <div class="go-best-header">Personal Bests</div>
+        <div class="go-best-header" id="go-best-header">Personal Bests</div>
         <div class="go-best-row">
           <div class="go-best-stat">
             <div class="bs-label">Best Score</div>
