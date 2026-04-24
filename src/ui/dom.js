@@ -18,6 +18,8 @@ export const EL = {
   homeHowPanel: byId('home-how-panel'),
   homeStatsPanel: byId('home-stats-panel'),
   homeAchievementsPanel: byId('home-achievements-panel'),
+  achievementsSummary: byId('achievements-summary'),
+  achievementsList: byId('achievements-list'),
   statsGrid: byId('stats-grid'),
   startBtn: byId('start-btn'),
   restartBtn: byId('restart-btn'),

@@ -43,6 +43,12 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Reused one focused home detail panel so informational sections no longer stack on the start screen
 - Added an Achievements panel preview ahead of the full achievement system
 
+## v0.010
+
+- Added persisted achievement unlocks driven by the existing stats and best-score systems
+- Replaced the Achievements preview with real locked/unlocked achievement cards
+- Moved skin selection directly below mode selection on the home screen
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version

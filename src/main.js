@@ -9,9 +9,11 @@ import {
   resetGameState,
   resetHudCache,
 } from './core/game-state.js';
+import { ACHIEVEMENTS } from './data/achievements.js';
 import { MODES } from './data/modes.js';
 import { SKINS } from './data/skins.js';
 import { buildGridCache, drawScene } from './render/game-renderer.js';
+import { evaluateAchievements } from './systems/achievements.js';
 import { createAudioController } from './systems/audio.js';
 import { LS } from './systems/storage.js';
 import { EL, ctx } from './ui/dom.js';
@@ -94,6 +96,23 @@ function getModeBestDistance() {
 
 function getStatsSnapshot() {
   return LS.getStats();
+}
+
+function getBestScoresByMode() {
+  return Object.fromEntries(MODES.map(mode => [mode.id, LS.getBest(mode.id)]));
+}
+
+function syncAchievements() {
+  const stats = getStatsSnapshot();
+  const unlocked = LS.getAchievements();
+  const newAchievements = evaluateAchievements(ACHIEVEMENTS, {
+    stats,
+    run: null,
+    bestScores: getBestScoresByMode(),
+  }, unlocked);
+
+  LS.unlockAchievements(newAchievements);
+  return newAchievements;
 }
 
 function updateModeUI() {
@@ -269,14 +288,25 @@ function persistRecords() {
     LS.setBestDist(+state.distance.toFixed(3));
   }
 
-  return LS.recordRun({
+  const run = {
     modeId,
     score: state.score,
     distance: +state.distance.toFixed(3),
     durationSeconds: getRunDurationSeconds(),
     foodEaten: state.foodEaten,
     maxMultiplier: state.maxMultiplier,
-  });
+  };
+  const stats = LS.recordRun(run);
+  const unlocked = LS.getAchievements();
+  const newAchievements = evaluateAchievements(ACHIEVEMENTS, {
+    stats,
+    run,
+    bestScores: getBestScoresByMode(),
+  }, unlocked);
+
+  LS.unlockAchievements(newAchievements);
+
+  return { stats, newAchievements };
 }
 
 function endGame() {
@@ -287,13 +317,17 @@ function endGame() {
 
   const isNewScore = state.score > getModeBestScore();
   const isNewDist = state.distance > getModeBestDistance();
-  persistRecords();
+  const progression = persistRecords();
   renderModesPanel();
   renderSkinsPanel();
   renderStatsPanel();
+  renderAchievementsPanel();
 
   setTimeout(() => {
-    EL.goModeLabel.textContent = `${state.currentMode.name} • ${state.gameOverReason === 'timeout' ? 'Time Up' : 'This Run'}`;
+    const achievementLabel = progression.newAchievements.length
+      ? ` • ${progression.newAchievements.length} Unlock${progression.newAchievements.length > 1 ? 's' : ''}`
+      : '';
+    EL.goModeLabel.textContent = `${state.currentMode.name} • ${state.gameOverReason === 'timeout' ? 'Time Up' : 'This Run'}${achievementLabel}`;
     EL.goScore.textContent = state.score;
     EL.goDist.textContent = `${state.distance.toFixed(2)} km`;
     EL.goMult.textContent = `${state.maxMultiplier}x`;
@@ -515,6 +549,7 @@ function renderStatsPanel() {
     totalScore: 0,
     totalSeconds: 0,
     bestMultiplier: 1,
+    bestDuration: 0,
     lastScore: 0,
     lastDistance: 0,
     lastDuration: 0,
@@ -547,6 +582,35 @@ function renderStatsPanel() {
   });
 }
 
+function renderAchievementsPanel() {
+  syncAchievements();
+  const unlocked = LS.getAchievements();
+  const unlockedCount = ACHIEVEMENTS.filter(achievement => unlocked[achievement.id]).length;
+  EL.achievementsSummary.textContent = `${unlockedCount}/${ACHIEVEMENTS.length} unlocked`;
+  EL.achievementsList.innerHTML = '';
+
+  ACHIEVEMENTS.forEach(achievement => {
+    const isUnlocked = Boolean(unlocked[achievement.id]);
+    const card = document.createElement('div');
+    card.className = `achievement-card${isUnlocked ? ' unlocked' : ''}`;
+
+    const name = document.createElement('div');
+    name.className = 'achievement-name';
+    name.textContent = achievement.name;
+
+    const description = document.createElement('div');
+    description.className = 'achievement-desc';
+    description.textContent = achievement.description;
+
+    const badge = document.createElement('div');
+    badge.className = 'achievement-badge';
+    badge.textContent = isUnlocked ? 'Unlocked' : achievement.category;
+
+    card.append(name, description, badge);
+    EL.achievementsList.appendChild(card);
+  });
+}
+
 function showHomePanel(panelId) {
   if (activeHomePanel === panelId) {
     hideHomePanel();
@@ -567,6 +631,9 @@ function showHomePanel(panelId) {
 
   if (panelId === 'stats') {
     renderStatsPanel();
+  }
+  if (panelId === 'achievements') {
+    renderAchievementsPanel();
   }
 }
 
@@ -591,6 +658,7 @@ function showStartScreen() {
   renderModesPanel();
   renderSkinsPanel();
   renderStatsPanel();
+  renderAchievementsPanel();
   hideHomePanel();
   resetGame();
 }

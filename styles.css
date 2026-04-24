@@ -353,25 +353,40 @@ body::after {
   text-shadow: 0 0 6px rgba(255,45,120,0.22);
 }
 
-/* Achievements preview */
-.achievements-preview {
+/* Achievements */
+.achievements-summary {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.achievements-list {
   display: grid;
   gap: 7px;
 }
 .achievement-card {
   position: relative;
   background: rgba(0,8,22,0.72);
-  border: 1px solid rgba(255,215,0,0.13);
+  border: 1px solid rgba(180,220,255,0.13);
   border-radius: 8px;
   padding: 8px 58px 8px 10px;
+}
+.achievement-card.unlocked {
+  border-color: rgba(255,215,0,0.32);
+  box-shadow: 0 0 10px rgba(255,215,0,0.10);
 }
 .achievement-name {
   font-family: 'Orbitron', monospace;
   font-size: 9px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--muted);
   margin-bottom: 3px;
+}
+.achievement-card.unlocked .achievement-name {
+  color: var(--gold);
 }
 .achievement-desc {
   font-size: 11px;
@@ -391,6 +406,11 @@ body::after {
   border-radius: 999px;
   padding: 3px 6px;
   background: rgba(255,255,255,0.05);
+}
+.achievement-card.unlocked .achievement-badge {
+  color: var(--gold);
+  border-color: rgba(255,215,0,0.24);
+  background: rgba(255,215,0,0.08);
 }
 
 /* Skins */

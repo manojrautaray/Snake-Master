@@ -9,6 +9,8 @@ export const LS = {
   setMode: id => localStorage.setItem('sm_mode', id),
   getStats: () => readStats(),
   recordRun: run => recordRun(run),
+  getAchievements: () => readAchievements(),
+  unlockAchievements: achievements => unlockAchievements(achievements),
 };
 
 function readMetric(metric, modeId) {
@@ -64,6 +66,7 @@ function recordRun(run) {
   stats.lifetime.totalScore += run.score;
   stats.lifetime.totalSeconds += run.durationSeconds;
   stats.lifetime.bestMultiplier = Math.max(stats.lifetime.bestMultiplier, run.maxMultiplier);
+  stats.lifetime.bestDuration = Math.max(stats.lifetime.bestDuration, run.durationSeconds);
 
   modeStats.gamesPlayed += 1;
   modeStats.foodEaten += run.foodEaten;
@@ -71,6 +74,7 @@ function recordRun(run) {
   modeStats.totalScore += run.score;
   modeStats.totalSeconds += run.durationSeconds;
   modeStats.bestMultiplier = Math.max(modeStats.bestMultiplier, run.maxMultiplier);
+  modeStats.bestDuration = Math.max(modeStats.bestDuration, run.durationSeconds);
   modeStats.lastScore = run.score;
   modeStats.lastDistance = run.distance;
   modeStats.lastDuration = run.durationSeconds;
@@ -88,6 +92,7 @@ function createEmptyStats() {
       totalScore: 0,
       totalSeconds: 0,
       bestMultiplier: 1,
+      bestDuration: 0,
     },
     modes: {},
   };
@@ -100,24 +105,58 @@ function mergeStatsShape(stats) {
       ...base.lifetime,
       ...(stats?.lifetime || {}),
     },
-    modes: stats?.modes || {},
+    modes: Object.fromEntries(Object.entries(stats?.modes || {}).map(([modeId, modeStats]) => [
+      modeId,
+      {
+        ...createEmptyModeStats(),
+        ...modeStats,
+      },
+    ])),
   };
 }
 
 function ensureModeStats(stats, modeId) {
   if (!stats.modes[modeId]) {
-    stats.modes[modeId] = {
-      gamesPlayed: 0,
-      foodEaten: 0,
-      totalDistance: 0,
-      totalScore: 0,
-      totalSeconds: 0,
-      bestMultiplier: 1,
-      lastScore: 0,
-      lastDistance: 0,
-      lastDuration: 0,
-    };
+    stats.modes[modeId] = createEmptyModeStats();
   }
 
   return stats.modes[modeId];
+}
+
+function createEmptyModeStats() {
+  return {
+    gamesPlayed: 0,
+    foodEaten: 0,
+    totalDistance: 0,
+    totalScore: 0,
+    totalSeconds: 0,
+    bestMultiplier: 1,
+    bestDuration: 0,
+    lastScore: 0,
+    lastDistance: 0,
+    lastDuration: 0,
+  };
+}
+
+function readAchievements() {
+  const raw = localStorage.getItem('sm_achievements');
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function unlockAchievements(achievements) {
+  if (!achievements.length) return readAchievements();
+
+  const unlocked = readAchievements();
+  const unlockedAt = new Date().toISOString();
+  achievements.forEach(achievement => {
+    unlocked[achievement.id] = unlocked[achievement.id] || unlockedAt;
+  });
+  localStorage.setItem('sm_achievements', JSON.stringify(unlocked));
+  return unlocked;
 }
