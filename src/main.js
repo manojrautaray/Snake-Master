@@ -1,0 +1,812 @@
+(function () {
+'use strict';
+
+/* ═══════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════ */
+const GRID       = 20;
+const BASE_MS    = 175;
+const MIN_MS     = 52;
+const MAX_SPD_LV = 10;
+const POOL_SIZE  = 80;
+const DIST_TICK  = 0.018;
+const TWO_PI     = Math.PI * 2;
+
+/* ═══════════════════════════════════════════
+   SKINS
+═══════════════════════════════════════════ */
+const SKINS = [
+  { id:'cyber',   name:'Cyber',     head:'#00eaff', body:'#0077aa', tail:'#003850', glow:'rgba(0,234,255,.8)',   food:'#ff2d78', foodGlow:'rgba(255,45,120,.9)',  unlock:'Default',     cond:()=>true },
+  { id:'venom',   name:'Venom',     head:'#00ff88', body:'#009944', tail:'#00291a', glow:'rgba(0,255,136,.8)',   food:'#ffd700', foodGlow:'rgba(255,215,0,.9)',   unlock:'Score 500',   cond:()=>LS.getBest()>=500 },
+  { id:'plasma',  name:'Plasma',    head:'#ff2d78', body:'#aa0033', tail:'#360011', glow:'rgba(255,45,120,.8)',  food:'#00eaff', foodGlow:'rgba(0,234,255,.9)',   unlock:'Score 1500',  cond:()=>LS.getBest()>=1500 },
+  { id:'gold',    name:'Gold Rush', head:'#ffd700', body:'#aa7700', tail:'#332200', glow:'rgba(255,215,0,.8)',   food:'#a855f7', foodGlow:'rgba(168,85,247,.9)', unlock:'1.5 km dist', cond:()=>LS.getBestDist()>=1.5 },
+  { id:'shadow',  name:'Shadow',    head:'#a855f7', body:'#6200cc', tail:'#1a003d', glow:'rgba(168,85,247,.8)', food:'#ff6b2b', foodGlow:'rgba(255,107,43,.9)',  unlock:'Score 3000',  cond:()=>LS.getBest()>=3000 },
+  { id:'inferno', name:'Inferno',   head:'#ff6b2b', body:'#aa2200', tail:'#330800', glow:'rgba(255,107,43,.8)', food:'#00ff88', foodGlow:'rgba(0,255,136,.9)',   unlock:'5 km dist',   cond:()=>LS.getBestDist()>=5 },
+];
+
+/* ═══════════════════════════════════════════
+   DOM CACHE
+═══════════════════════════════════════════ */
+const byId = id => document.getElementById(id);
+const EL = {
+  canvas     : byId('gameCanvas'),
+  canvasWrap : byId('canvas-wrap'),
+  hud        : byId('hud'),
+  startOv    : byId('start-overlay'),
+  goOv       : byId('go-overlay'),
+  cdWrap     : byId('cd-wrap'),
+  cdNum      : byId('cd-num'),
+  skinsGrid  : byId('skins-grid'),
+  startBtn   : byId('start-btn'),
+  restartBtn : byId('restart-btn'),
+  homeBtn    : byId('home-btn'),
+  // HUD elements
+  hScore    : byId('h-score'),
+  hMult     : byId('h-mult'),
+  hDist     : byId('h-dist'),
+  hSpeed    : byId('h-speed'),
+  hBest     : byId('h-best'),
+  hBestdist : byId('h-bestdist'),
+  // Game Over elements
+  goScore    : byId('go-score'),
+  goBest     : byId('go-best'),
+  goDist     : byId('go-dist'),
+  goBestdist : byId('go-bestdist'),
+  goMult     : byId('go-mult'),
+};
+const ctx = EL.canvas.getContext('2d');
+
+/* ═══════════════════════════════════════════
+   LOCAL STORAGE
+═══════════════════════════════════════════ */
+const LS = {
+  getBest    : ()  => parseInt(localStorage.getItem('sm_best') || '0'),
+  setBest    : v   => localStorage.setItem('sm_best', v),
+  getBestDist: ()  => parseFloat(localStorage.getItem('sm_dist') || '0'),
+  setBestDist: v   => localStorage.setItem('sm_dist', v),
+  getSkin    : ()  => localStorage.getItem('sm_skin') || 'cyber',
+  setSkin    : id  => localStorage.setItem('sm_skin', id),
+};
+
+/* ═══════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════ */
+let cellSize;          // pixel size of one grid cell (always square)
+let gridCanvas;        // cached offscreen grid
+
+let snake, snakeSet, dir, nextDir, food;
+let score, distance, multiplier, maxMultiplier, speedLevel;
+let gameRunning = false;
+let gameStarted = false;
+let currentSkin = null;
+
+let rafId        = null;
+let lastTickTime = 0;
+let tickInterval = BASE_MS;
+
+let foodAnim = 0;
+let headBob  = 0;
+
+// Particle pool
+const pPool = Array.from({length: POOL_SIZE}, () =>
+  ({alive:false, x:0, y:0, vx:0, vy:0, alpha:0, size:0, color:''}));
+let pActive = 0;
+
+let touchX0 = 0, touchY0 = 0;
+
+// HUD dirty-check cache
+let _hScore=-1, _hMult=-1, _hDist='', _hSpeed=-1, _hBest=-1, _hBd='';
+
+/* ═══════════════════════════════════════════
+   LAYOUT: enforce a perfect square board
+═══════════════════════════════════════════ */
+function resize() {
+  // Measure HUD height
+  const hudH = EL.hud.getBoundingClientRect().height || 38;
+
+  // Available viewport minus HUD, minus small padding
+  const availW = window.innerWidth  - 8;   // 4px padding each side
+  const availH = window.innerHeight - hudH - 8;
+
+  // Square: smaller of width vs available height
+  const size = Math.max(100, Math.floor(Math.min(availW, availH)));
+
+  // Set canvas pixel size = CSS size (true 1:1, no scaling artefacts)
+  EL.canvas.width  = size;
+  EL.canvas.height = size;
+  EL.canvas.style.width  = size + 'px';
+  EL.canvas.style.height = size + 'px';
+
+  // Wrapper matches exactly
+  EL.canvasWrap.style.width  = size + 'px';
+  EL.canvasWrap.style.height = size + 'px';
+
+  // HUD matches canvas width
+  EL.hud.style.width    = size + 'px';
+  EL.hud.style.maxWidth = size + 'px';
+
+  cellSize = size / GRID;
+  buildGridCache(size);
+}
+
+function buildGridCache(size) {
+  gridCanvas = document.createElement('canvas');
+  gridCanvas.width = size; gridCanvas.height = size;
+  const gc = gridCanvas.getContext('2d');
+  gc.strokeStyle = 'rgba(0,110,150,0.12)';
+  gc.lineWidth   = 0.5;
+  for (let i = 0; i <= GRID; i++) {
+    const p = i * cellSize;
+    gc.beginPath(); gc.moveTo(p, 0); gc.lineTo(p, size); gc.stroke();
+    gc.beginPath(); gc.moveTo(0, p); gc.lineTo(size, p); gc.stroke();
+  }
+}
+
+/* ═══════════════════════════════════════════
+   AUDIO
+   BGM: soft ambient pads + subtle pulse bass
+        Volume is very low — designed for long
+        sessions. Tempo follows game speed.
+═══════════════════════════════════════════ */
+let audioCtx   = null;
+let masterGain = null;
+let bgmRunning    = false;
+let bgmScheduleId = null;
+let bgmAtmosOsc   = null;
+let bgmAtmosOsc2  = null;
+let bgmPadGain    = null;
+let arpStep       = 0;
+let arpNextTime   = 0;
+
+// Pentatonic scale in A minor — pleasant and non-fatiguing
+const ARP_NOTES = [110, 130.81, 164.81, 196, 220, 261.63, 329.63, 392];
+
+const LOOK_AHEAD  = 0.15;
+const SCHEDULE_MS = 70;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 1.0;
+      masterGain.connect(audioCtx.destination);
+    } catch (_) { return false; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return true;
+}
+
+// General one-shot tone
+function tone(freq, type, vol, offsetSec, dur) {
+  if (!ensureAudio()) return;
+  const t   = audioCtx.currentTime + offsetSec;
+  const osc = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(t); osc.stop(t + dur + 0.01);
+}
+
+/* ── SFX ── */
+const playEat = () => {
+  // Soft, musical — two quick sine tones
+  tone(523.25, 'sine', 0.07, 0,    0.10);
+  tone(783.99, 'sine', 0.05, 0.05, 0.09);
+};
+const playGameOverSFX = () => {
+  tone(220, 'triangle', 0.10, 0,    0.30);
+  tone(174.61, 'triangle', 0.08, 0.18, 0.28);
+  tone(130.81, 'triangle', 0.06, 0.35, 0.35);
+};
+const playCountdownTick = go => tone(go ? 880 : 600, 'sine', 0.15, 0, 0.12);
+
+/* ── BGM beat helpers — all very quiet ── */
+function softKick(time) {
+  if (!audioCtx) return;
+  // Gentle sine sweep, no noise transient
+  const osc = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(80, time);
+  osc.frequency.exponentialRampToValueAtTime(35, time + 0.07);
+  g.gain.setValueAtTime(0.07, time);           // ← very quiet
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.10);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(time); osc.stop(time + 0.11);
+}
+
+function softHat(time, vol) {
+  if (!audioCtx) return;
+  const buf  = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate * 0.035), audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src  = audioCtx.createBufferSource();
+  const hpf  = audioCtx.createBiquadFilter();
+  hpf.type = 'highpass'; hpf.frequency.value = 8000;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, time);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.03);
+  src.buffer = buf;
+  src.connect(hpf); hpf.connect(g); g.connect(masterGain);
+  src.start(time); src.stop(time + 0.04);
+}
+
+function getBgmTempo() {
+  // Slow speed → 90 BPM, max speed → 160 BPM
+  const t = (tickInterval - MIN_MS) / (BASE_MS - MIN_MS);
+  return Math.round(160 - t * 70);
+}
+
+function scheduleBgm() {
+  if (!bgmRunning || !audioCtx) return;
+  const bpm      = getBgmTempo();
+  const beatSec  = 60 / bpm;
+  const eighth   = beatSec / 2;
+
+  while (arpNextTime < audioCtx.currentTime + LOOK_AHEAD) {
+    const step = arpStep % 16;  // 2-bar loop at 8th notes
+    const beat = Math.floor(step / 2);
+
+    // Kick on beats 0 and 4 (quarter-note feel)
+    if (step === 0 || step === 8) softKick(arpNextTime);
+
+    // Quiet hi-hat every 8th
+    softHat(arpNextTime, step % 2 === 0 ? 0.025 : 0.012);
+
+    // Bass pulse on beat 0
+    if (step === 0) {
+      tone(ARP_NOTES[0], 'sine', 0.04, arpNextTime - audioCtx.currentTime, beatSec * 1.8);
+    }
+
+    // Arp: every other 8th, soft sine notes
+    if (step % 2 === 0) {
+      const ni  = Math.floor(step / 2) % ARP_NOTES.length;
+      const vol = step === 0 ? 0.028 : 0.016;
+      tone(ARP_NOTES[ni], 'sine', vol, arpNextTime - audioCtx.currentTime, eighth * 0.65);
+    }
+
+    arpStep++;
+    arpNextTime += eighth;
+  }
+
+  bgmScheduleId = setTimeout(scheduleBgm, SCHEDULE_MS);
+}
+
+function startBGM() {
+  if (!ensureAudio() || bgmRunning) return;
+  bgmRunning  = true;
+  arpStep     = 0;
+  arpNextTime = audioCtx.currentTime + 0.08;
+
+  // Continuous atmospheric drone — two detuned sine waves, barely audible
+  bgmAtmosOsc  = audioCtx.createOscillator();
+  bgmAtmosOsc2 = audioCtx.createOscillator();
+  bgmPadGain   = audioCtx.createGain();
+
+  const lpf = audioCtx.createBiquadFilter();
+  lpf.type = 'lowpass'; lpf.frequency.value = 320;
+
+  bgmAtmosOsc.type  = 'sine'; bgmAtmosOsc.frequency.value  = 55.0;   // A1
+  bgmAtmosOsc2.type = 'sine'; bgmAtmosOsc2.frequency.value = 55.4;   // slightly detuned → soft chorus
+
+  bgmPadGain.gain.value = 0.022;  // very quiet pad
+
+  bgmAtmosOsc.connect(lpf);
+  bgmAtmosOsc2.connect(lpf);
+  lpf.connect(bgmPadGain);
+  bgmPadGain.connect(masterGain);
+  bgmAtmosOsc.start();
+  bgmAtmosOsc2.start();
+
+  scheduleBgm();
+}
+
+function stopBGM() {
+  bgmRunning = false;
+  if (bgmScheduleId) { clearTimeout(bgmScheduleId); bgmScheduleId = null; }
+  try { bgmAtmosOsc.stop();  } catch(_) {}
+  try { bgmAtmosOsc2.stop(); } catch(_) {}
+  bgmAtmosOsc = bgmAtmosOsc2 = bgmPadGain = null;
+}
+
+/* ── Screen shake + vibration ── */
+function triggerScreenShake() {
+  const wrap = EL.canvasWrap;
+  wrap.classList.remove('shaking');
+  void wrap.offsetWidth;
+  wrap.classList.add('shaking');
+  wrap.addEventListener('animationend', () => wrap.classList.remove('shaking'), {once:true});
+  if (navigator.vibrate) navigator.vibrate([70, 35, 110, 35, 55]);
+}
+
+/* ═══════════════════════════════════════════
+   GAME SETUP
+═══════════════════════════════════════════ */
+function key(x, y) { return x * 100 + y; }
+
+function resetGame() {
+  const mid = GRID >> 1;
+  snake    = [{x:mid,y:mid},{x:mid-1,y:mid},{x:mid-2,y:mid}];
+  snakeSet = new Set(snake.map(s => key(s.x, s.y)));
+  dir      = {x:1, y:0};
+  nextDir  = {x:1, y:0};
+  score = distance = 0;
+  multiplier = maxMultiplier = speedLevel = 1;
+  tickInterval = BASE_MS;
+  lastTickTime = 0;
+  pActive = 0;
+  for (let i = 0; i < POOL_SIZE; i++) pPool[i].alive = false;
+  placeFood();
+  resetHUDCache();
+  updateHUD();
+}
+
+function placeFood() {
+  let p;
+  do { p = {x: (Math.random()*GRID)|0, y: (Math.random()*GRID)|0}; }
+  while (snakeSet.has(key(p.x, p.y)));
+  food = p;
+}
+
+const calcInterval   = len => Math.round(BASE_MS - (BASE_MS - MIN_MS) * Math.min((len-3)/37, 1));
+const calcSpeedLevel = ms  => Math.round(1 + (BASE_MS - ms) / (BASE_MS - MIN_MS) * (MAX_SPD_LV - 1));
+const calcMultiplier = len => Math.max(1, 1 + Math.floor((len-3)/5));
+
+/* ═══════════════════════════════════════════
+   PARTICLES
+═══════════════════════════════════════════ */
+function spawnParticles(gx, gy, color) {
+  const px = (gx + 0.5) * cellSize;
+  const py = (gy + 0.5) * cellSize;
+  let n = 0;
+  for (let i = 0; i < POOL_SIZE && n < 12; i++) {
+    if (pPool[i].alive) continue;
+    const p = pPool[i];
+    const a = Math.random() * TWO_PI;
+    const s = 1.6 + Math.random() * 2.6;
+    p.alive=true; p.x=px; p.y=py;
+    p.vx=Math.cos(a)*s; p.vy=Math.sin(a)*s;
+    p.alpha=1; p.size=2+Math.random()*3; p.color=color;
+    pActive++; n++;
+  }
+}
+function updateParticles() {
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const p = pPool[i];
+    if (!p.alive) continue;
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.07;
+    p.alpha*=0.87; p.size*=0.965;
+    if (p.alpha < 0.02) { p.alive=false; pActive--; }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   GAME TICK
+═══════════════════════════════════════════ */
+function tick() {
+  dir = nextDir;
+  const nx = ((snake[0].x + dir.x) % GRID + GRID) % GRID;
+  const ny = ((snake[0].y + dir.y) % GRID + GRID) % GRID;
+  const nk = key(nx, ny);
+
+  const tail    = snake[snake.length - 1];
+  const tailKey = key(tail.x, tail.y);
+  snakeSet.delete(tailKey);
+
+  if (snakeSet.has(nk)) {
+    snakeSet.add(tailKey);
+    endGame(); return;
+  }
+
+  snake.unshift({x:nx, y:ny});
+  snakeSet.add(nk);
+
+  const ate = nx === food.x && ny === food.y;
+  if (ate) {
+    snakeSet.add(tailKey);
+    score        += 10 * multiplier;
+    multiplier    = calcMultiplier(snake.length);
+    maxMultiplier = Math.max(maxMultiplier, multiplier);
+    tickInterval  = calcInterval(snake.length);
+    speedLevel    = calcSpeedLevel(tickInterval);
+    playEat();
+    spawnParticles(food.x, food.y, currentSkin.food);
+    placeFood();
+  } else {
+    snake.pop();
+  }
+
+  distance += DIST_TICK;
+  updateHUD();
+}
+
+/* ═══════════════════════════════════════════
+   HUD (dirty-check — no redundant DOM writes)
+═══════════════════════════════════════════ */
+function updateHUD() {
+  const best = Math.max(LS.getBest(), score);
+  const bd   = Math.max(LS.getBestDist(), distance);
+  const ds   = distance.toFixed(2) + ' km';
+  const bds  = bd.toFixed(2);
+
+  if (score      !== _hScore) { EL.hScore.textContent    = score;          _hScore = score; }
+  if (multiplier !== _hMult)  { EL.hMult.textContent     = multiplier+'x'; _hMult  = multiplier; }
+  if (ds         !== _hDist)  { EL.hDist.textContent     = ds;             _hDist  = ds; }
+  if (speedLevel !== _hSpeed) { EL.hSpeed.textContent    = speedLevel;     _hSpeed = speedLevel; }
+  if (best       !== _hBest)  { EL.hBest.textContent     = best;           _hBest  = best; }
+  if (bds        !== _hBd)    { EL.hBestdist.textContent = bds;            _hBd    = bds; }
+}
+function resetHUDCache() { _hScore=_hMult=_hDist=_hSpeed=_hBest=_hBd=-1; _hDist=_hBd=''; }
+
+/* ═══════════════════════════════════════════
+   END GAME
+═══════════════════════════════════════════ */
+function endGame() {
+  gameRunning = false;
+  stopBGM();
+  playGameOverSFX();
+  triggerScreenShake();
+
+  const isNewScore = score    > LS.getBest();
+  const isNewDist  = distance > LS.getBestDist();
+  if (isNewScore) LS.setBest(score);
+  if (isNewDist)  LS.setBestDist(+distance.toFixed(3));
+  renderSkinsPanel();
+
+  setTimeout(() => {
+    EL.goScore.textContent    = score;
+    EL.goDist.textContent     = distance.toFixed(2) + ' km';
+    EL.goMult.textContent     = maxMultiplier + 'x';
+    EL.goBest.textContent     = LS.getBest();
+    EL.goBestdist.textContent = LS.getBestDist().toFixed(2) + ' km';
+    // Flash bests only when a new record was set
+    EL.goBest.classList.toggle('new-best',     isNewScore);
+    EL.goBestdist.classList.toggle('new-best', isNewDist);
+    document.body.classList.add('menu-open');
+    EL.goOv.classList.remove('hidden');
+  }, 420);
+}
+
+/* ═══════════════════════════════════════════
+   RAF LOOP
+═══════════════════════════════════════════ */
+function loop(ts) {
+  rafId = requestAnimationFrame(loop);
+  foodAnim += 0.07;
+  headBob  += 0.10;
+  if (pActive > 0) updateParticles();
+  if (gameRunning) {
+    if (!lastTickTime) lastTickTime = ts;
+    if (ts - lastTickTime >= tickInterval) {
+      lastTickTime += tickInterval;
+      tick();
+    }
+  }
+  draw();
+}
+
+/* ═══════════════════════════════════════════
+   DRAWING
+═══════════════════════════════════════════ */
+function draw() {
+  const S = EL.canvas.width;
+  ctx.clearRect(0, 0, S, S);
+  if (gridCanvas) ctx.drawImage(gridCanvas, 0, 0);
+  if (!snake) return;
+  drawFood();
+  drawSnake();
+  if (pActive > 0) drawParticles();
+}
+
+/*
+  Food: square tile, same size as snake segments,
+  with a colour-matched glow border, inner radial
+  gradient, and a small specular dot.
+  Pulses in size (±10%) and glow intensity.
+*/
+function drawFood() {
+  const s     = currentSkin;
+  const cs    = cellSize;
+  const pulse = 0.90 + 0.10 * Math.sin(foodAnim); // 0.90–1.00 scale
+  const pad   = cs * 0.10;                         // 10% inset, same as snake
+  const inner = cs - pad * 2;
+  const sz    = inner * pulse;                     // pulsing size
+  const cx    = food.x * cs + cs * 0.5;
+  const cy    = food.y * cs + cs * 0.5;
+  const x     = cx - sz * 0.5;
+  const y     = cy - sz * 0.5;
+
+  ctx.save();
+
+  // Glow
+  ctx.shadowColor = s.foodGlow;
+  ctx.shadowBlur  = 10 + 6 * Math.sin(foodAnim);
+
+  // Square body with radial gradient (lighter centre → skin colour edges)
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, sz * 0.72);
+  grad.addColorStop(0,   lighten(s.food, 0.38));
+  grad.addColorStop(0.5, s.food);
+  grad.addColorStop(1,   darken(s.food, 0.30));
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, sz, sz);
+  ctx.shadowBlur = 0;
+
+  // Specular dot (top-left quarter)
+  ctx.fillStyle = 'rgba(255,255,255,0.30)';
+  ctx.fillRect(x + sz * 0.12, y + sz * 0.12, sz * 0.28, sz * 0.18);
+
+  ctx.restore();
+}
+
+/*
+  Snake: every segment is the same solid colour (skin.head).
+  No multi-shade gradient along the body.
+  Head gets a glow; all other segments are flat.
+  Eyes sit on top of the head tile.
+*/
+function drawSnake() {
+  const s   = currentSkin;
+  const len = snake.length;
+  const cs  = cellSize;
+  const pad = cs * 0.10;
+  const sz  = cs - pad * 2;
+
+  for (let i = len - 1; i >= 0; i--) {
+    const seg    = snake[i];
+    const isHead = (i === 0);
+    const bobY   = isHead ? Math.sin(headBob) * 1.0 : 0;
+
+    const x = seg.x * cs + pad;
+    const y = seg.y * cs + pad + bobY;
+
+    if (isHead) {
+      ctx.shadowColor = s.glow;
+      ctx.shadowBlur  = 14;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    // Single solid colour for every segment
+    ctx.globalAlpha = 1;
+    ctx.fillStyle   = s.head;
+    ctx.fillRect(x, y, sz, sz);
+
+    // Subtle top-left inner highlight for dimensionality
+    ctx.shadowBlur = 0;
+    ctx.fillStyle  = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(x, y, sz, 2);
+    ctx.fillRect(x, y, 2, sz);
+
+    if (isHead) {
+      drawEyes(seg, bobY);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur  = 0;
+}
+
+function drawEyes(seg, bobY) {
+  const d  = dir;
+  const cs = cellSize;
+  const cx = seg.x * cs + cs * 0.5;
+  const cy = seg.y * cs + cs * 0.5 + bobY;
+  const eo = cs * 0.20;
+  const er = cs * 0.09;
+  const pp = 0.52;
+
+  let e1, e2;
+  if      (d.x === 1)  { e1={x:cx+cs*.13,y:cy-eo}; e2={x:cx+cs*.13,y:cy+eo}; }
+  else if (d.x === -1) { e1={x:cx-cs*.13,y:cy-eo}; e2={x:cx-cs*.13,y:cy+eo}; }
+  else if (d.y === -1) { e1={x:cx-eo,y:cy-cs*.13}; e2={x:cx+eo,y:cy-cs*.13}; }
+  else                 { e1={x:cx-eo,y:cy+cs*.13}; e2={x:cx+eo,y:cy+cs*.13}; }
+
+  const px = d.x*er*pp, py = d.y*er*pp;
+  [e1, e2].forEach(e => {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(e.x, e.y, er, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(e.x+px, e.y+py, er*0.54, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.68)';
+    ctx.beginPath(); ctx.arc(e.x+px-er*.2, e.y+py-er*.2, er*.22, 0, TWO_PI); ctx.fill();
+  });
+}
+
+function drawParticles() {
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const p = pPool[i];
+    if (!p.alive) continue;
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle   = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur  = 3;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TWO_PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur  = 0;
+}
+
+/* ── Colour helpers ── */
+function hexToRgb(hex) {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+function lighten(hex, a) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.min(255,r+a*255|0)},${Math.min(255,g+a*255|0)},${Math.min(255,b+a*255|0)})`;
+}
+function darken(hex, a) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.max(0,r-a*255|0)},${Math.max(0,g-a*255|0)},${Math.max(0,b-a*255|0)})`;
+}
+
+/* ═══════════════════════════════════════════
+   INPUT
+═══════════════════════════════════════════ */
+const KEY_MAP = {
+  ArrowLeft:{x:-1,y:0}, ArrowRight:{x:1,y:0},
+  ArrowUp:{x:0,y:-1},   ArrowDown:{x:0,y:1}
+};
+
+function onKeyDown(e) {
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+  if (e.code === 'Space') { if (!gameStarted) startWithCountdown(); return; }
+  if (!gameRunning) return;
+  const nd = KEY_MAP[e.code];
+  if (nd && !(nd.x === -dir.x && nd.y === -dir.y)) nextDir = nd;
+}
+
+function onTouchStart(e) {
+  e.preventDefault();
+  touchX0 = e.touches[0].clientX;
+  touchY0 = e.touches[0].clientY;
+}
+function onTouchEnd(e) {
+  e.preventDefault();
+  const dx = e.changedTouches[0].clientX - touchX0;
+  const dy = e.changedTouches[0].clientY - touchY0;
+  if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+  if (!gameStarted) { startWithCountdown(); return; }
+  if (!gameRunning) return;
+  const nd = Math.abs(dx) > Math.abs(dy)
+    ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
+    : (dy > 0 ? {x:0,y:1} : {x:0,y:-1});
+  if (!(nd.x === -dir.x && nd.y === -dir.y)) nextDir = nd;
+}
+
+/* ═══════════════════════════════════════════
+   SKIN PANEL
+═══════════════════════════════════════════ */
+function renderSkinsPanel() {
+  EL.skinsGrid.innerHTML = '';
+  SKINS.forEach(skin => {
+    const unlocked = skin.cond();
+    const selected = skin.id === currentSkin.id;
+    const card = document.createElement('div');
+    card.className = 'skin-card'+(selected?' selected':'')+(unlocked?'':' locked');
+
+    // Preview: three square blocks showing tail / body / head colours
+    const pv = document.createElement('canvas');
+    pv.className = 'skin-preview'; pv.width = 26; pv.height = 26;
+    const pc = pv.getContext('2d');
+    pc.fillStyle = skin.tail; pc.fillRect(0,  0, 26, 26);
+    pc.fillStyle = skin.body; pc.fillRect(0,  0, 18, 26);
+    pc.shadowColor = skin.glow; pc.shadowBlur = 5;
+    pc.fillStyle = skin.head; pc.fillRect(0,  0, 11, 26);
+    pc.shadowBlur = 0;
+
+    const info = document.createElement('div'); info.className = 'skin-info';
+    const nm   = document.createElement('div'); nm.className = 'skin-name';
+    nm.style.color = skin.head; nm.textContent = skin.name;
+    const cd   = document.createElement('div'); cd.className = 'skin-cond';
+    cd.textContent = skin.unlock;
+    info.append(nm, cd);
+
+    const badge = document.createElement('div');
+    badge.className = 'skin-badge'+(unlocked?'':' locked');
+    badge.textContent = unlocked ? (selected?'ON':'USE') : '🔒';
+
+    card.append(pv, info, badge);
+    if (unlocked) card.addEventListener('click', () => { currentSkin=skin; LS.setSkin(skin.id); renderSkinsPanel(); });
+    EL.skinsGrid.appendChild(card);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   GAME FLOW
+═══════════════════════════════════════════ */
+function showStartScreen() {
+  gameStarted = false;
+  gameRunning = false;
+  stopBGM();
+  document.body.classList.add('menu-open');
+  EL.startOv.classList.remove('hidden');
+  EL.goOv.classList.add('hidden');
+  renderSkinsPanel();
+  resetGame();
+  // Show stored bests immediately in HUD
+  EL.hBest.textContent     = LS.getBest();
+  EL.hBestdist.textContent = LS.getBestDist().toFixed(2);
+}
+
+function startWithCountdown() {
+  if (gameStarted) return;
+  gameStarted = true;
+  ensureAudio();                   // unlock AudioContext on user gesture
+  document.body.classList.remove('menu-open');
+  EL.startOv.classList.add('hidden');
+  resetGame();
+  runCountdown();
+}
+
+function runCountdown() {
+  const steps = ['3','2','1','GO!'];
+  let i = 0;
+  EL.cdWrap.style.display = 'flex';
+
+  function showStep() {
+    if (i >= steps.length) {
+      EL.cdWrap.style.display = 'none';
+      lastTickTime = 0;
+      gameRunning  = true;
+      startBGM();
+      return;
+    }
+    const isGo = steps[i] === 'GO!';
+    playCountdownTick(isGo);
+    const el = EL.cdNum;
+    el.style.transition = 'none';
+    el.style.opacity    = '0';
+    el.style.transform  = 'scale(0.35)';
+    el.style.color      = isGo ? 'var(--green)' : 'var(--cyan)';
+    el.style.textShadow = isGo
+      ? '0 0 26px var(--green), 0 0 52px rgba(0,255,136,0.32)'
+      : '0 0 26px var(--cyan),  0 0 52px rgba(0,234,255,0.32)';
+    el.textContent = steps[i];
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'opacity .13s ease, transform .20s cubic-bezier(.17,.89,.32,1.28)';
+      el.style.opacity    = '1';
+      el.style.transform  = 'scale(1)';
+    }));
+    i++;
+    setTimeout(showStep, isGo ? 460 : 840);
+  }
+  showStep();
+}
+
+/* ═══════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════ */
+function init() {
+  currentSkin = SKINS.find(s => s.id === LS.getSkin()) || SKINS[0];
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  window.addEventListener('keydown', onKeyDown);
+  EL.canvas.addEventListener('touchstart',  onTouchStart, {passive:false});
+  EL.canvas.addEventListener('touchend',    onTouchEnd,   {passive:false});
+
+  EL.startBtn.addEventListener('click', () => startWithCountdown());
+
+  EL.restartBtn.addEventListener('click', () => {
+    document.body.classList.remove('menu-open');
+    EL.goOv.classList.add('hidden');
+    gameStarted = false;
+    startWithCountdown();
+  });
+
+  EL.homeBtn.addEventListener('click', () => {
+    EL.goOv.classList.add('hidden');
+    showStartScreen();
+  });
+
+  showStartScreen();
+  rafId = requestAnimationFrame(loop);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+})();
