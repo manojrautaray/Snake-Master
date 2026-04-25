@@ -6,6 +6,21 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - `vX.Y00` for medium milestones
 - `vX.YYY` for small milestones
 
+## v0.001
+
+- Initial playable Snake Master project checkpoint in the repository
+  
+## v0.002
+
+- Added GitHub Pages deployment setup
+- Added `.gitignore`
+- Added `.nojekyll`
+- Added GitHub Actions Pages workflow
+  
+## v0.003
+
+- Replaced the repository README with the provided richer version
+
 ## v0.004
 
 - Refactored the app shell by splitting inline assets out of `index.html`
@@ -69,17 +84,3 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Kept the bottom control area active in Swipe mode as a dedicated swipe pad
 - Preserved the square `20 x 20` board while improving mobile portrait ergonomics
 
-## v0.003
-
-- Replaced the repository README with the provided richer version
-
-## v0.002
-
-- Added GitHub Pages deployment setup
-- Added `.gitignore`
-- Added `.nojekyll`
-- Added GitHub Actions Pages workflow
-
-## v0.001
-
-- Initial playable Snake Master project checkpoint in the repository
