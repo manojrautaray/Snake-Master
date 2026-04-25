@@ -55,6 +55,14 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Kept the home Achievements panel as the full locked/unlocked collection view
 - Highlighted unlocks immediately after a run so progression feedback is visible
 
+## v0.012
+
+- Converted How, Stats, Achievements, and Settings into popup panels
+- Expanded the achievement catalog to 100 stat-driven achievements with premium card badges and progress bars
+- Added a persisted mobile control setting for Swipe or on-screen Keys
+- Added a mobile portrait D-pad layout while keeping the board `20 x 20` across devices
+- Updated How content to reflect modes, skins, achievements, and mobile control options
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version

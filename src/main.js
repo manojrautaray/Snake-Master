@@ -28,6 +28,13 @@ const KEY_MAP = {
   ArrowDown: { x: 0, y: 1 },
 };
 
+const CONTROL_DIRECTIONS = {
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+};
+
 const HOME_PANELS = {
   how: {
     title: 'How to Play',
@@ -44,9 +51,15 @@ const HOME_PANELS = {
     button: () => EL.homeAchievementsBtn,
     panel: () => EL.homeAchievementsPanel,
   },
+  settings: {
+    title: 'Settings',
+    button: () => EL.homeSettingsBtn,
+    panel: () => EL.homeSettingsPanel,
+  },
 };
 
 let activeHomePanel = null;
+let controlMode = LS.getControlMode();
 
 function resize() {
   const hudHeight = EL.hud.getBoundingClientRect().height || 38;
@@ -102,14 +115,18 @@ function getBestScoresByMode() {
   return Object.fromEntries(MODES.map(mode => [mode.id, LS.getBest(mode.id)]));
 }
 
+function getAchievementContext(run = null, stats = getStatsSnapshot()) {
+  return {
+    stats,
+    run,
+    bestScores: getBestScoresByMode(),
+  };
+}
+
 function syncAchievements() {
   const stats = getStatsSnapshot();
   const unlocked = LS.getAchievements();
-  const newAchievements = evaluateAchievements(ACHIEVEMENTS, {
-    stats,
-    run: null,
-    bestScores: getBestScoresByMode(),
-  }, unlocked);
+  const newAchievements = evaluateAchievements(ACHIEVEMENTS, getAchievementContext(null, stats), unlocked);
 
   LS.unlockAchievements(newAchievements);
   return newAchievements;
@@ -121,7 +138,7 @@ function updateModeUI() {
   EL.goBestHeader.textContent = `${state.currentMode.name} Bests`;
   EL.startBtn.textContent = `START ${state.currentMode.name.toUpperCase()}`;
   if (activeHomePanel === 'stats') {
-    EL.homeInfoTitle.textContent = `${state.currentMode.name} Stats`;
+    EL.homeModalTitle.textContent = `${state.currentMode.name} Stats`;
   }
 }
 
@@ -298,11 +315,7 @@ function persistRecords() {
   };
   const stats = LS.recordRun(run);
   const unlocked = LS.getAchievements();
-  const newAchievements = evaluateAchievements(ACHIEVEMENTS, {
-    stats,
-    run,
-    bestScores: getBestScoresByMode(),
-  }, unlocked);
+  const newAchievements = evaluateAchievements(ACHIEVEMENTS, getAchievementContext(run, stats), unlocked);
 
   LS.unlockAchievements(newAchievements);
 
@@ -311,6 +324,7 @@ function persistRecords() {
 
 function endGame() {
   state.gameRunning = false;
+  document.body.classList.remove('playing');
   audio.stopBGM();
   audio.playGameOverSFX();
   triggerScreenShake();
@@ -400,18 +414,18 @@ function onKeyDown(event) {
   if (!state.gameRunning) return;
 
   const nextDirection = KEY_MAP[event.code];
-  if (nextDirection && !(nextDirection.x === -state.dir.x && nextDirection.y === -state.dir.y)) {
-    state.nextDir = nextDirection;
-  }
+  applyDirection(nextDirection);
 }
 
 function onTouchStart(event) {
+  if (controlMode !== 'swipe') return;
   event.preventDefault();
   state.touchX0 = event.touches[0].clientX;
   state.touchY0 = event.touches[0].clientY;
 }
 
 function onTouchEnd(event) {
+  if (controlMode !== 'swipe') return;
   event.preventDefault();
   const dx = event.changedTouches[0].clientX - state.touchX0;
   const dy = event.changedTouches[0].clientY - state.touchY0;
@@ -423,15 +437,50 @@ function onTouchEnd(event) {
     return;
   }
 
-  if (!state.gameRunning) return;
-
   const nextDirection = Math.abs(dx) > Math.abs(dy)
     ? (dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 })
     : (dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 });
 
+  applyDirection(nextDirection);
+}
+
+function onControlPointer(event) {
+  event.preventDefault();
+  const direction = CONTROL_DIRECTIONS[event.currentTarget.dataset.dir];
+  if (!state.gameStarted) {
+    startWithCountdown();
+    if (direction && !(direction.x === -state.dir.x && direction.y === -state.dir.y)) {
+      state.nextDir = direction;
+    }
+    return;
+  }
+  applyDirection(direction);
+}
+
+function applyDirection(nextDirection) {
+  if (!nextDirection || !state.gameRunning) return;
   if (!(nextDirection.x === -state.dir.x && nextDirection.y === -state.dir.y)) {
     state.nextDir = nextDirection;
   }
+}
+
+function setControlMode(nextMode) {
+  controlMode = nextMode === 'keys' ? 'keys' : 'swipe';
+  LS.setControlMode(controlMode);
+  updateSettingsUI();
+  updateMobileControls();
+}
+
+function updateSettingsUI() {
+  EL.controlModeGroup.querySelectorAll('[data-control-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.controlMode === controlMode);
+  });
+}
+
+function updateMobileControls() {
+  document.body.classList.toggle('keys-enabled', controlMode === 'keys');
+  document.body.classList.toggle('swipe-enabled', controlMode === 'swipe');
+  EL.mobileControls.classList.toggle('hidden', controlMode !== 'keys');
 }
 
 function renderModesPanel() {
@@ -606,6 +655,7 @@ function renderStatsPanel() {
 
 function renderAchievementsPanel() {
   syncAchievements();
+  const context = getAchievementContext();
   const unlocked = LS.getAchievements();
   const unlockedCount = ACHIEVEMENTS.filter(achievement => unlocked[achievement.id]).length;
   EL.achievementsSummary.textContent = `${unlockedCount}/${ACHIEVEMENTS.length} unlocked`;
@@ -613,8 +663,20 @@ function renderAchievementsPanel() {
 
   ACHIEVEMENTS.forEach(achievement => {
     const isUnlocked = Boolean(unlocked[achievement.id]);
+    const progressData = achievement.progress(context);
+    const progressPercent = Math.round(progressData.ratio * 100);
     const card = document.createElement('div');
     card.className = `achievement-card${isUnlocked ? ' unlocked' : ''}`;
+
+    const medal = document.createElement('div');
+    medal.className = 'achievement-medal';
+    medal.textContent = achievement.badge;
+
+    const status = document.createElement('div');
+    status.className = 'achievement-state';
+
+    const content = document.createElement('div');
+    content.className = 'achievement-content';
 
     const name = document.createElement('div');
     name.className = 'achievement-name';
@@ -624,30 +686,38 @@ function renderAchievementsPanel() {
     description.className = 'achievement-desc';
     description.textContent = achievement.description;
 
-    const badge = document.createElement('div');
-    badge.className = 'achievement-badge';
-    badge.textContent = isUnlocked ? 'Unlocked' : achievement.category;
+    const meta = document.createElement('div');
+    meta.className = 'achievement-meta';
+    meta.textContent = `${achievement.category} • ${formatProgress(progressData)}`;
 
-    card.append(name, description, badge);
+    const progressTrack = document.createElement('div');
+    progressTrack.className = 'achievement-progress';
+    const progressBar = document.createElement('div');
+    progressBar.className = 'achievement-progress-bar';
+    progressBar.style.width = `${progressPercent}%`;
+    progressTrack.appendChild(progressBar);
+
+    content.append(name, description, meta, progressTrack);
+    card.append(medal, content, status);
     EL.achievementsList.appendChild(card);
   });
 }
 
 function showHomePanel(panelId) {
   if (activeHomePanel === panelId) {
-    hideHomePanel();
+    closeHomeModal();
     return;
   }
 
   activeHomePanel = panelId;
-  EL.homeInfoPanel.classList.remove('hidden');
+  EL.homeModal.classList.remove('hidden');
 
   Object.entries(HOME_PANELS).forEach(([id, config]) => {
     config.panel().classList.toggle('hidden', id !== panelId);
     config.button().classList.toggle('active', id === panelId);
   });
 
-  EL.homeInfoTitle.textContent = panelId === 'stats'
+  EL.homeModalTitle.textContent = panelId === 'stats'
     ? `${state.currentMode.name} Stats`
     : HOME_PANELS[panelId].title;
 
@@ -657,11 +727,14 @@ function showHomePanel(panelId) {
   if (panelId === 'achievements') {
     renderAchievementsPanel();
   }
+  if (panelId === 'settings') {
+    updateSettingsUI();
+  }
 }
 
-function hideHomePanel() {
+function closeHomeModal() {
   activeHomePanel = null;
-  EL.homeInfoPanel.classList.add('hidden');
+  EL.homeModal.classList.add('hidden');
 
   Object.values(HOME_PANELS).forEach(config => {
     config.panel().classList.add('hidden');
@@ -673,6 +746,7 @@ function showStartScreen() {
   state.gameStarted = false;
   state.gameRunning = false;
   audio.stopBGM();
+  document.body.classList.remove('playing');
   document.body.classList.add('menu-open');
   EL.startOv.classList.remove('hidden');
   EL.goOv.classList.add('hidden');
@@ -681,7 +755,7 @@ function showStartScreen() {
   renderSkinsPanel();
   renderStatsPanel();
   renderAchievementsPanel();
-  hideHomePanel();
+  closeHomeModal();
   resetGame();
 }
 
@@ -690,6 +764,7 @@ function startWithCountdown() {
 
   state.gameStarted = true;
   audio.ensureAudio();
+  document.body.classList.add('playing');
   document.body.classList.remove('menu-open');
   EL.startOv.classList.add('hidden');
   resetGame();
@@ -752,6 +827,17 @@ function init() {
   EL.homeHowBtn.addEventListener('click', () => showHomePanel('how'));
   EL.homeStatsBtn.addEventListener('click', () => showHomePanel('stats'));
   EL.homeAchievementsBtn.addEventListener('click', () => showHomePanel('achievements'));
+  EL.homeSettingsBtn.addEventListener('click', () => showHomePanel('settings'));
+  EL.homeModalClose.addEventListener('click', closeHomeModal);
+  EL.homeModal.addEventListener('click', event => {
+    if (event.target === EL.homeModal) closeHomeModal();
+  });
+  EL.controlModeGroup.querySelectorAll('[data-control-mode]').forEach(button => {
+    button.addEventListener('click', () => setControlMode(button.dataset.controlMode));
+  });
+  EL.mobileControls.querySelectorAll('[data-dir]').forEach(button => {
+    button.addEventListener('pointerdown', onControlPointer);
+  });
 
   EL.restartBtn.addEventListener('click', () => {
     document.body.classList.remove('menu-open');
@@ -766,6 +852,8 @@ function init() {
   });
 
   showStartScreen();
+  updateSettingsUI();
+  updateMobileControls();
   state.rafId = requestAnimationFrame(loop);
 }
 
@@ -791,4 +879,14 @@ function formatSeconds(value) {
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatProgress(progressData) {
+  return `${formatProgressValue(progressData.current)}/${formatProgressValue(progressData.target)}`;
+}
+
+function formatProgressValue(value) {
+  if (value >= 1000) return formatCompactInt(Math.round(value));
+  if (value % 1 !== 0) return value.toFixed(1);
+  return String(Math.round(value));
 }

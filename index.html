@@ -65,26 +65,7 @@
         <button class="home-action" id="home-how-btn" type="button">How</button>
         <button class="home-action" id="home-stats-btn" type="button">Stats</button>
         <button class="home-action" id="home-achievements-btn" type="button">Achievements</button>
-      </div>
-
-      <div class="glass-panel home-info-panel hidden" id="home-info-panel">
-        <div class="panel-title" id="home-info-title">How to Play</div>
-        <div class="home-info-body" id="home-how-panel">
-          <div class="instructions">
-            <b>Desktop:</b> <span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span> Arrow keys<br>
-            <b>Mobile:</b> Swipe in any direction<br>
-            Walls wrap in Classic and Time Attack.<br>
-            Hardcore walls are solid.<br>
-            Snake length&nbsp;→&nbsp;Speed &amp; Multiplier ↑
-          </div>
-        </div>
-        <div class="home-info-body hidden" id="home-stats-panel">
-          <div class="stats-grid" id="stats-grid"></div>
-        </div>
-        <div class="home-info-body hidden" id="home-achievements-panel">
-          <div class="achievements-summary" id="achievements-summary"></div>
-          <div class="achievements-list" id="achievements-list"></div>
-        </div>
+        <button class="home-action" id="home-settings-btn" type="button">Settings</button>
       </div>
 
       <button class="btn btn-green" id="start-btn">▶ &nbsp;START GAME</button>
@@ -136,6 +117,58 @@
       <div class="btn-row">
         <button class="btn btn-green" id="restart-btn">▶ PLAY AGAIN</button>
         <button class="btn btn-home"  id="home-btn">⌂ HOME</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-controls hidden" id="mobile-controls" aria-label="Mobile key controls">
+    <button class="control-key control-up" type="button" data-dir="up">UP</button>
+    <button class="control-key control-left" type="button" data-dir="left">LEFT</button>
+    <button class="control-key control-right" type="button" data-dir="right">RIGHT</button>
+    <button class="control-key control-down" type="button" data-dir="down">DOWN</button>
+  </div>
+
+  <div class="modal-overlay hidden" id="home-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div class="panel-title" id="home-modal-title">How to Play</div>
+        <button class="modal-close" id="home-modal-close" type="button" aria-label="Close popup">X</button>
+      </div>
+
+      <div class="modal-section" id="home-how-panel">
+        <div class="instructions">
+          <b>Goal:</b> eat food, grow longer, build multiplier, and push mode-specific bests.<br>
+          <b>Classic:</b> walls wrap and runs continue until you hit yourself.<br>
+          <b>Time Attack:</b> score as much as possible before the timer reaches zero.<br>
+          <b>Hardcore:</b> walls are solid and every fruit is worth more.<br>
+          <b>Skins:</b> unlock new looks through score and distance milestones.<br>
+          <b>Achievements:</b> earn badges from food, distance, modes, multipliers, and lifetime progress.<br>
+          <b>Controls:</b> desktop uses arrow keys. Mobile can use swipe or on-screen keys from Settings.
+        </div>
+      </div>
+
+      <div class="modal-section hidden" id="home-stats-panel">
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
+
+      <div class="modal-section hidden" id="home-achievements-panel">
+        <div class="achievements-summary" id="achievements-summary"></div>
+        <div class="achievements-list" id="achievements-list"></div>
+      </div>
+
+      <div class="modal-section hidden" id="home-settings-panel">
+        <div class="settings-grid">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Mobile Controls</div>
+              <div class="setting-desc">Choose swipe gestures or an on-screen key pad.</div>
+            </div>
+            <div class="segmented-control" id="control-mode-group">
+              <button class="segment-btn" type="button" data-control-mode="swipe">Swipe</button>
+              <button class="segment-btn" type="button" data-control-mode="keys">Keys</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
