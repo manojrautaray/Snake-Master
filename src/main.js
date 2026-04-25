@@ -1,4 +1,4 @@
-import { BASE_MS, DIST_TICK, GRID, MIN_MS } from './config.js';
+import { APP_VERSION, BASE_MS, DIST_TICK, GRID, MIN_MS } from './config.js';
 import {
   calcInterval,
   calcMultiplier,
@@ -58,6 +58,13 @@ const HOME_PANELS = {
   },
 };
 
+const HAPTICS = {
+  input: 8,
+  eat: 16,
+  unlock: [28, 32, 28],
+  countdownGo: 18,
+};
+
 let activeHomePanel = null;
 let controlMode = LS.getControlMode();
 
@@ -90,6 +97,11 @@ function triggerScreenShake() {
   if (navigator.vibrate) {
     navigator.vibrate([70, 35, 110, 35, 55]);
   }
+}
+
+function vibrate(pattern) {
+  if (!navigator.vibrate) return;
+  navigator.vibrate(pattern);
 }
 
 function resetGame() {
@@ -235,6 +247,7 @@ function tick() {
     state.tickInterval = calcInterval(state.snake.length, state.currentMode);
     state.speedLevel = calcSpeedLevel(state.tickInterval, state.currentMode);
     audio.playEat();
+    vibrate(HAPTICS.eat);
     spawnParticles(state.food.x, state.food.y, state.currentSkin.food);
     placeFood(state);
   } else {
@@ -352,6 +365,9 @@ function endGame() {
     EL.goBestdist.classList.toggle('new-best', isNewDist);
     document.body.classList.add('menu-open');
     EL.goOv.classList.remove('hidden');
+    if (progression.newAchievements.length) {
+      vibrate(HAPTICS.unlock);
+    }
   }, 420);
 }
 
@@ -493,7 +509,11 @@ function onControlPointer(event) {
 function applyDirection(nextDirection) {
   if (!nextDirection || !state.gameRunning) return;
   if (!(nextDirection.x === -state.dir.x && nextDirection.y === -state.dir.y)) {
+    const changed = nextDirection.x !== state.nextDir.x || nextDirection.y !== state.nextDir.y;
     state.nextDir = nextDirection;
+    if (changed) {
+      vibrate(HAPTICS.input);
+    }
   }
 }
 
@@ -816,6 +836,7 @@ function runCountdown() {
       state.lastFrameTime = 0;
       state.gameRunning = true;
       audio.startBGM();
+      vibrate(HAPTICS.countdownGo);
       return;
     }
 
@@ -848,6 +869,7 @@ function runCountdown() {
 function init() {
   state.currentSkin = SKINS.find(skin => skin.id === LS.getSkin()) || SKINS[0];
   state.currentMode = MODES.find(mode => mode.id === LS.getMode()) || MODES[0];
+  EL.appVersion.textContent = APP_VERSION;
 
   resize();
   updateModeUI();
@@ -890,7 +912,18 @@ function init() {
   showStartScreen();
   updateSettingsUI();
   updateMobileControls();
+  registerServiceWorker();
   state.rafId = requestAnimationFrame(loop);
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {
+      // The game still runs normally if install/offline support is unavailable.
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);

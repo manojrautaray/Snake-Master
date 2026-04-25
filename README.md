@@ -1,12 +1,12 @@
 # 🐍 Snake Master — Neon Edition
 
-A polished, feature-rich Snake game built entirely in vanilla HTML, CSS, and JavaScript. No frameworks. No libraries. One single `index.html` file you can open in any browser and play instantly.
+A polished, feature-rich Snake game built entirely in vanilla HTML, CSS, and JavaScript. No frameworks. No libraries. Modular static files you can host on GitHub Pages or open locally for quick play.
 
 ---
 
 ## 🎮 Play It
 
-Just open `index.html` in any modern browser — no build step, no server, no dependencies.
+Open `index.html` in any modern browser, or host the folder as a static site. No build step, no package install, no dependencies.
 
 ```bash
 git clone https://github.com/your-username/snake-master.git
@@ -79,20 +79,27 @@ All audio generated live via the **Web Audio API** — no audio files needed:
 |---|---|
 | Desktop | Arrow keys `↑ ↓ ← →` |
 | Desktop | `Space` to start |
-| Mobile | Swipe in any direction |
+| Mobile | Swipe in any direction or use the on-screen keypad |
 | Mobile | Tap START GAME button |
 
 ---
 
 ## 🏗 Technical Details
 
-**Single file** — everything lives in `index.html`:
+**Modular static app** — HTML, CSS, and browser modules are split by responsibility:
 
 ```
 index.html
-├── CSS          — layout, HUD, overlays, animations
-├── Canvas API   — all game rendering
-└── JavaScript   — game loop, audio, input, storage
+├── styles.css
+├── manifest.webmanifest
+├── service-worker.js
+├── icons/
+└── src/
+    ├── core/
+    ├── data/
+    ├── render/
+    ├── systems/
+    └── ui/
 ```
 
 ### Performance choices
@@ -103,13 +110,7 @@ index.html
 - **HUD dirty-checking** — DOM text nodes only update when values actually change
 
 ### Storage
-Uses `localStorage` with three keys:
-
-| Key | Value |
-|---|---|
-| `sm_best` | Best score (integer) |
-| `sm_dist` | Best distance (float, km) |
-| `sm_skin` | Selected skin ID (string) |
+Uses `localStorage` for scores, distances, selected skin, selected mode, mobile control preference, stats, and achievement unlocks.
 
 ---
 
@@ -117,8 +118,13 @@ Uses `localStorage` with three keys:
 
 ```
 snake-master/
-├── index.html   # The entire game
-└── README.md    # This file
+├── index.html
+├── styles.css
+├── manifest.webmanifest
+├── service-worker.js
+├── icons/
+├── src/
+└── README.md
 ```
 
 ---
@@ -130,6 +136,7 @@ Works in all modern browsers that support:
 - Web Audio API
 - CSS `backdrop-filter`
 - `localStorage`
+- Service workers for install/offline support
 
 | Browser | Status |
 |---|---|
@@ -144,20 +151,20 @@ Works in all modern browsers that support:
 
 ## 🚀 Deployment
 
-Since it's a single static file, you can host it anywhere:
+Since it is a static app, you can host it anywhere:
 
 **GitHub Pages**
 ```bash
-# Push to your repo, then enable GitHub Pages in Settings → Pages
-# Set source to the branch/root containing index.html
+# Push to your repo, then enable GitHub Pages in Settings → Pages.
+# The app can be served directly from the repository root.
 ```
 
 **Netlify / Vercel**
 ```bash
-# Just drag-and-drop the index.html file into the dashboard
+# Deploy the full project folder as a static site
 ```
 
-**Any static host** — the file has zero external dependencies except the Google Fonts import (gracefully degrades if offline).
+**Any static host** — the app has zero build-time dependencies. Google Fonts gracefully degrade if offline.
 
 ---
 

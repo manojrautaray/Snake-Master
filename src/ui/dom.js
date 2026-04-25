@@ -5,6 +5,7 @@ export const EL = {
   canvasWrap: byId('canvas-wrap'),
   hud: byId('hud'),
   startOv: byId('start-overlay'),
+  appVersion: byId('app-version'),
   goOv: byId('go-overlay'),
   cdWrap: byId('cd-wrap'),
   cdNum: byId('cd-num'),

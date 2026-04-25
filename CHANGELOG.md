@@ -89,3 +89,9 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Expanded the mobile control deck to span the whole bottom of the screen
 - Made the key layout use large full-width touch targets for easier thumb play
 - Made Swipe mode use the same full bottom deck as the gesture capture area
+
+## v0.015
+
+- Added PWA install metadata, a service worker, and neon SVG/PNG app icons
+- Added mobile haptics for input, food, countdown start, crashes, and achievement unlocks
+- Added mobile viewport safe-area polish and a subtle in-game version marker

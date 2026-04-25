@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Snake Master icon</title>
+  <desc id="desc">Neon snake on a dark arcade grid.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050810"/>
+      <stop offset="0.55" stop-color="#06162c"/>
+      <stop offset="1" stop-color="#0b0317"/>
+    </linearGradient>
+    <linearGradient id="snake" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#00eaff"/>
+      <stop offset="1" stop-color="#00ff88"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M64 128h384M64 208h384M64 288h384M64 368h384M128 64v384M208 64v384M288 64v384M368 64v384" stroke="#00eaff" stroke-opacity=".08" stroke-width="4"/>
+  <rect x="76" y="76" width="360" height="360" rx="84" fill="none" stroke="#00eaff" stroke-opacity=".34" stroke-width="8"/>
+  <g filter="url(#glow)">
+    <rect x="144" y="144" width="74" height="74" rx="18" fill="url(#snake)"/>
+    <rect x="218" y="144" width="74" height="74" rx="18" fill="url(#snake)" opacity=".92"/>
+    <rect x="292" y="144" width="74" height="74" rx="18" fill="url(#snake)" opacity=".84"/>
+    <rect x="292" y="218" width="74" height="74" rx="18" fill="url(#snake)" opacity=".92"/>
+    <rect x="292" y="292" width="74" height="74" rx="18" fill="url(#snake)"/>
+  </g>
+  <circle cx="338" cy="328" r="7" fill="#050810"/>
+  <circle cx="322" cy="328" r="7" fill="#050810"/>
+  <rect x="144" y="292" width="54" height="54" rx="14" fill="#ff2d78" filter="url(#glow)"/>
+  <path d="M168 168h32M316 242h26" stroke="#ffffff" stroke-opacity=".55" stroke-width="8" stroke-linecap="round"/>
+</svg>
