@@ -84,3 +84,8 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Kept the bottom control area active in Swipe mode as a dedicated swipe pad
 - Preserved the square `20 x 20` board while improving mobile portrait ergonomics
 
+## v0.014
+
+- Expanded the mobile control deck to span the whole bottom of the screen
+- Made the key layout use large full-width touch targets for easier thumb play
+- Made Swipe mode use the same full bottom deck as the gesture capture area

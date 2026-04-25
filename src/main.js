@@ -420,15 +420,48 @@ function onKeyDown(event) {
 function onTouchStart(event) {
   if (controlMode !== 'swipe') return;
   event.preventDefault();
-  state.touchX0 = event.touches[0].clientX;
-  state.touchY0 = event.touches[0].clientY;
+  if (!event.touches.length) return;
+  startSwipe(event.touches[0].clientX, event.touches[0].clientY);
 }
 
 function onTouchEnd(event) {
   if (controlMode !== 'swipe') return;
   event.preventDefault();
-  const dx = event.changedTouches[0].clientX - state.touchX0;
-  const dy = event.changedTouches[0].clientY - state.touchY0;
+  if (!event.changedTouches.length) return;
+  finishSwipe(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+}
+
+function onSwipePadPointerDown(event) {
+  if (controlMode !== 'swipe') return;
+  event.preventDefault();
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  startSwipe(event.clientX, event.clientY);
+}
+
+function onSwipePadPointerUp(event) {
+  if (controlMode !== 'swipe') return;
+  event.preventDefault();
+  finishSwipe(event.clientX, event.clientY);
+}
+
+function onSwipePadPointerCancel() {
+  state.touchX0 = null;
+  state.touchY0 = null;
+}
+
+function startSwipe(clientX, clientY) {
+  state.touchX0 = clientX;
+  state.touchY0 = clientY;
+}
+
+function finishSwipe(clientX, clientY) {
+  if (state.touchX0 == null || state.touchY0 == null) return;
+
+  const dx = clientX - state.touchX0;
+  const dy = clientY - state.touchY0;
+
+  state.touchX0 = null;
+  state.touchY0 = null;
 
   if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
 
@@ -822,8 +855,9 @@ function init() {
   window.addEventListener('keydown', onKeyDown);
   EL.canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   EL.canvas.addEventListener('touchend', onTouchEnd, { passive: false });
-  EL.mobileControls.addEventListener('touchstart', onTouchStart, { passive: false });
-  EL.mobileControls.addEventListener('touchend', onTouchEnd, { passive: false });
+  EL.mobileControls.addEventListener('pointerdown', onSwipePadPointerDown);
+  EL.mobileControls.addEventListener('pointerup', onSwipePadPointerUp);
+  EL.mobileControls.addEventListener('pointercancel', onSwipePadPointerCancel);
 
   EL.startBtn.addEventListener('click', startWithCountdown);
   EL.homeHowBtn.addEventListener('click', () => showHomePanel('how'));
