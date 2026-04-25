@@ -331,6 +331,7 @@ function endGame() {
     EL.goScore.textContent = state.score;
     EL.goDist.textContent = `${state.distance.toFixed(2)} km`;
     EL.goMult.textContent = `${state.maxMultiplier}x`;
+    renderRunAchievements(progression.newAchievements);
     EL.goBest.textContent = getModeBestScore();
     EL.goBestdist.textContent = `${getModeBestDistance().toFixed(2)} km`;
     EL.goBest.classList.toggle('new-best', isNewScore);
@@ -480,6 +481,27 @@ function renderModesPanel() {
     card.append(top, desc, meta);
     card.addEventListener('click', () => setMode(mode.id));
     EL.modesGrid.appendChild(card);
+  });
+}
+
+function renderRunAchievements(newAchievements) {
+  EL.goAchievements.classList.toggle('hidden', newAchievements.length === 0);
+  EL.goAchievementsList.innerHTML = '';
+
+  newAchievements.forEach(achievement => {
+    const item = document.createElement('div');
+    item.className = 'go-achievement-item';
+
+    const name = document.createElement('div');
+    name.className = 'go-achievement-name';
+    name.textContent = achievement.name;
+
+    const description = document.createElement('div');
+    description.className = 'go-achievement-desc';
+    description.textContent = achievement.description;
+
+    item.append(name, description);
+    EL.goAchievementsList.appendChild(item);
   });
 }
 

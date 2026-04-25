@@ -546,6 +546,53 @@ body::after {
 .rs-val.green { color: var(--green); text-shadow: 0 0 6px var(--green); }
 .rs-val.pink  { color: var(--pink);  text-shadow: 0 0 6px var(--pink);  }
 
+/* ── Achievement unlocks ── */
+.go-achievements-panel {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(28,20,0,0.58);
+  border: 1px solid rgba(255,215,0,0.24);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 14px rgba(255,215,0,0.10);
+}
+.go-achievements-panel.hidden {
+  display: none;
+}
+.go-achievements-header {
+  font-family: 'Orbitron', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+  text-align: center;
+}
+.go-achievements-list {
+  display: grid;
+  gap: 7px;
+}
+.go-achievement-item {
+  background: rgba(255,215,0,0.06);
+  border: 1px solid rgba(255,215,0,0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.go-achievement-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 3px;
+}
+.go-achievement-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
 /* ── BEST section ── */
 .go-best-panel {
   width: 100%; max-width: 380px;

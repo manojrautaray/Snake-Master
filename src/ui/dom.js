@@ -33,6 +33,8 @@ export const EL = {
   hBestdist: byId('h-bestdist'),
   goModeLabel: byId('go-mode-label'),
   goScore: byId('go-score'),
+  goAchievements: byId('go-achievements'),
+  goAchievementsList: byId('go-achievements-list'),
   goBest: byId('go-best'),
   goBestHeader: byId('go-best-header'),
   goDist: byId('go-dist'),

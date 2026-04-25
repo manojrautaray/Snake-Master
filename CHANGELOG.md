@@ -49,6 +49,12 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Replaced the Achievements preview with real locked/unlocked achievement cards
 - Moved skin selection directly below mode selection on the home screen
 
+## v0.011
+
+- Added a game-over achievement unlock panel for newly earned achievements
+- Kept the home Achievements panel as the full locked/unlocked collection view
+- Highlighted unlocks immediately after a run so progression feedback is visible
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version
