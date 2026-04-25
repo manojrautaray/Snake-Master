@@ -95,3 +95,9 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added PWA install metadata, a service worker, and neon SVG/PNG app icons
 - Added mobile haptics for input, food, countdown start, crashes, and achievement unlocks
 - Added mobile viewport safe-area polish and a subtle in-game version marker
+
+## v0.016
+
+- Fixed installed iOS PWA notch overlap on the home and game-over overlays
+- Applied shared safe-area spacing to overlays, modals, the app root, and mobile control decks
+- Bumped the service-worker cache and visible version marker for the safe-area fix

@@ -11,6 +11,10 @@
   --orange: #ff6b2b;
   --text:   #cce8ff;
   --muted:  rgba(180,220,255,0.45);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --mobile-control-height: clamp(184px, 28vh, 248px);
   --mobile-control-pad-x: clamp(10px, 3.5vw, 22px);
 }
@@ -70,10 +74,11 @@ body::after {
 #root {
   position: relative; z-index: 1;
   width: 100%; min-height: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+  padding: calc(4px + var(--safe-top)) calc(4px + var(--safe-right)) calc(4px + var(--safe-bottom)) calc(4px + var(--safe-left));
   gap: 0;
 }
 
@@ -170,10 +175,11 @@ body::after {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   z-index: 100;
-  padding: 16px 14px 24px;
+  padding: calc(20px + var(--safe-top)) calc(14px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(14px + var(--safe-left));
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  scroll-padding-top: calc(20px + var(--safe-top));
   -webkit-overflow-scrolling: touch;
 }
 .overlay > * { flex-shrink: 0; }
@@ -561,14 +567,15 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
   background: rgba(3,7,18,0.78);
   backdrop-filter: blur(9px);
   -webkit-backdrop-filter: blur(9px);
 }
 .modal-panel {
   width: min(620px, 100%);
-  max-height: min(720px, calc(100vh - 32px));
+  max-height: min(720px, calc(100vh - 32px - var(--safe-top) - var(--safe-bottom)));
+  max-height: min(720px, calc(100dvh - 32px - var(--safe-top) - var(--safe-bottom)));
   overflow-y: auto;
   background: rgba(0,18,38,0.94);
   border: 1px solid rgba(0,234,255,0.22);
@@ -864,15 +871,15 @@ body::after {
 @media (max-width: 700px) and (orientation: portrait) {
   body.playing #root {
     justify-content: flex-start;
-    padding-top: max(4px, env(safe-area-inset-top));
+    padding-top: calc(4px + var(--safe-top));
   }
 
   body.playing.swipe-enabled #root {
-    padding-bottom: calc(var(--mobile-control-height) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--mobile-control-height) + var(--safe-bottom));
   }
 
   body.playing.keys-enabled #root {
-    padding-bottom: calc(var(--mobile-control-height) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--mobile-control-height) + var(--safe-bottom));
   }
 
   body.playing.swipe-enabled .mobile-controls:not(.hidden) {
@@ -883,8 +890,8 @@ body::after {
     display: grid;
     place-items: center;
     width: 100%;
-    height: calc(var(--mobile-control-height) + env(safe-area-inset-bottom));
-    padding: 18px var(--mobile-control-pad-x) calc(18px + env(safe-area-inset-bottom));
+    height: calc(var(--mobile-control-height) + var(--safe-bottom));
+    padding: 18px calc(var(--mobile-control-pad-x) + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(var(--mobile-control-pad-x) + var(--safe-left));
     border-top: 1px solid rgba(0,234,255,0.16);
     border-radius: 22px 22px 0 0;
     background:
@@ -937,8 +944,8 @@ body::after {
     grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: clamp(10px, 2.8vw, 16px);
     width: 100%;
-    height: calc(var(--mobile-control-height) + env(safe-area-inset-bottom));
-    padding: 14px var(--mobile-control-pad-x) calc(14px + env(safe-area-inset-bottom));
+    height: calc(var(--mobile-control-height) + var(--safe-bottom));
+    padding: 14px calc(var(--mobile-control-pad-x) + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(var(--mobile-control-pad-x) + var(--safe-left));
     border-top: 1px solid rgba(0,234,255,0.16);
     border-radius: 22px 22px 0 0;
     background:
@@ -953,11 +960,12 @@ body::after {
 
   .modal-overlay {
     align-items: flex-end;
-    padding: 10px;
+    padding: calc(10px + var(--safe-top)) calc(10px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(10px + var(--safe-left));
   }
 
   .modal-panel {
-    max-height: min(78vh, 720px);
+    max-height: min(78vh, calc(100vh - 20px - var(--safe-top) - var(--safe-bottom)), 720px);
+    max-height: min(78dvh, calc(100dvh - 20px - var(--safe-top) - var(--safe-bottom)), 720px);
     width: 100%;
   }
 }
