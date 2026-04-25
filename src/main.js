@@ -480,7 +480,7 @@ function updateSettingsUI() {
 function updateMobileControls() {
   document.body.classList.toggle('keys-enabled', controlMode === 'keys');
   document.body.classList.toggle('swipe-enabled', controlMode === 'swipe');
-  EL.mobileControls.classList.toggle('hidden', controlMode !== 'keys');
+  EL.mobileControls.classList.remove('hidden');
 }
 
 function renderModesPanel() {
@@ -822,6 +822,8 @@ function init() {
   window.addEventListener('keydown', onKeyDown);
   EL.canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   EL.canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+  EL.mobileControls.addEventListener('touchstart', onTouchStart, { passive: false });
+  EL.mobileControls.addEventListener('touchend', onTouchEnd, { passive: false });
 
   EL.startBtn.addEventListener('click', startWithCountdown);
   EL.homeHowBtn.addEventListener('click', () => showHomePanel('how'));

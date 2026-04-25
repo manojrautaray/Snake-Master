@@ -63,6 +63,12 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added a mobile portrait D-pad layout while keeping the board `20 x 20` across devices
 - Updated How content to reflect modes, skins, achievements, and mobile control options
 
+## v0.013
+
+- Enlarged the mobile on-screen key controls for easier thumb input
+- Kept the bottom control area active in Swipe mode as a dedicated swipe pad
+- Preserved the square `20 x 20` board while improving mobile portrait ergonomics
+
 ## v0.003
 
 - Replaced the repository README with the provided richer version
