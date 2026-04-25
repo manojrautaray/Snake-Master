@@ -36,6 +36,11 @@ const CONTROL_DIRECTIONS = {
 };
 
 const HOME_PANELS = {
+  skins: {
+    title: 'Skins',
+    button: () => EL.homeSkinsBtn,
+    panel: () => EL.homeSkinsPanel,
+  },
   how: {
     title: 'How to Play',
     button: () => EL.homeHowBtn,
@@ -162,6 +167,7 @@ function setMode(modeId) {
   renderModesPanel();
   renderStatsPanel();
   resetGame();
+  updateHomeActionMeta();
 }
 
 function spawnParticles(gx, gy, color) {
@@ -534,16 +540,37 @@ function updateMobileControls() {
   document.body.classList.toggle('keys-enabled', controlMode === 'keys');
   document.body.classList.toggle('swipe-enabled', controlMode === 'swipe');
   EL.mobileControls.classList.remove('hidden');
+  updateHomeActionMeta();
+}
+
+function updateHomeActionMeta() {
+  const stats = getStatsSnapshot();
+  const modeStats = stats.modes[state.currentMode.id] || { gamesPlayed: 0 };
+  const unlocked = LS.getAchievements();
+  const unlockedCount = ACHIEVEMENTS.filter(achievement => unlocked[achievement.id]).length;
+
+  EL.homeSkinsMeta.textContent = `${state.currentSkin.name} active`;
+  EL.homeStatsMeta.textContent = `${formatCompactInt(modeStats.gamesPlayed)} ${modeStats.gamesPlayed === 1 ? 'run' : 'runs'}`;
+  EL.homeAchievementsMeta.textContent = `${unlockedCount}/${ACHIEVEMENTS.length} unlocked`;
+  EL.homeSettingsMeta.textContent = `${controlMode === 'keys' ? 'Keypad' : 'Swipe'} controls`;
 }
 
 function renderModesPanel() {
   EL.modesGrid.innerHTML = '';
+  const selectedIndex = MODES.findIndex(mode => mode.id === state.currentMode.id);
 
-  MODES.forEach(mode => {
+  MODES.forEach((mode, index) => {
     const selected = mode.id === state.currentMode.id;
-    const card = document.createElement('div');
-    card.className = `mode-card${selected ? ' selected' : ''}`;
-    card.style.borderColor = selected ? mode.accent : '';
+    const stackPosition = (index - selectedIndex + MODES.length) % MODES.length;
+    const card = document.createElement('button');
+    card.className = `mode-card stack-${stackPosition}${selected ? ' selected' : ''}`;
+    card.type = 'button';
+    card.style.setProperty('--mode-accent', mode.accent);
+    card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'mode-eyebrow';
+    eyebrow.textContent = selected ? 'Current Mode' : 'Tap to Select';
 
     const top = document.createElement('div');
     top.className = 'mode-top';
@@ -580,10 +607,20 @@ function renderModesPanel() {
     chipThree.textContent = `${mode.baseTickMs}ms Start`;
 
     meta.append(chipOne, chipTwo, chipThree);
-    card.append(top, desc, meta);
+    card.append(eyebrow, top, desc, meta);
     card.addEventListener('click', () => setMode(mode.id));
     EL.modesGrid.appendChild(card);
   });
+
+  const dots = document.createElement('div');
+  dots.className = 'mode-stack-dots';
+  MODES.forEach(mode => {
+    const dot = document.createElement('span');
+    dot.className = `mode-stack-dot${mode.id === state.currentMode.id ? ' active' : ''}`;
+    dot.style.setProperty('--mode-accent', mode.accent);
+    dots.appendChild(dot);
+  });
+  EL.modesGrid.appendChild(dots);
 }
 
 function renderRunAchievements(newAchievements) {
@@ -609,6 +646,8 @@ function renderRunAchievements(newAchievements) {
 
 function renderSkinsPanel() {
   EL.skinsGrid.innerHTML = '';
+  const unlockedCount = SKINS.filter(skin => skin.cond()).length;
+  EL.skinsSummary.textContent = `${state.currentSkin.name} active • ${unlockedCount}/${SKINS.length} skins unlocked`;
 
   SKINS.forEach(skin => {
     const unlocked = skin.cond();
@@ -656,11 +695,13 @@ function renderSkinsPanel() {
         state.currentSkin = skin;
         LS.setSkin(skin.id);
         renderSkinsPanel();
+        updateHomeActionMeta();
       });
     }
 
     EL.skinsGrid.appendChild(card);
   });
+  updateHomeActionMeta();
 }
 
 function renderStatsPanel() {
@@ -704,6 +745,7 @@ function renderStatsPanel() {
     panel.append(label, value);
     EL.statsGrid.appendChild(panel);
   });
+  updateHomeActionMeta();
 }
 
 function renderAchievementsPanel() {
@@ -754,6 +796,7 @@ function renderAchievementsPanel() {
     card.append(medal, content, status);
     EL.achievementsList.appendChild(card);
   });
+  updateHomeActionMeta();
 }
 
 function showHomePanel(panelId) {
@@ -776,6 +819,9 @@ function showHomePanel(panelId) {
 
   if (panelId === 'stats') {
     renderStatsPanel();
+  }
+  if (panelId === 'skins') {
+    renderSkinsPanel();
   }
   if (panelId === 'achievements') {
     renderAchievementsPanel();
@@ -883,6 +929,7 @@ function init() {
 
   EL.startBtn.addEventListener('click', startWithCountdown);
   EL.homeHowBtn.addEventListener('click', () => showHomePanel('how'));
+  EL.homeSkinsBtn.addEventListener('click', () => showHomePanel('skins'));
   EL.homeStatsBtn.addEventListener('click', () => showHomePanel('stats'));
   EL.homeAchievementsBtn.addEventListener('click', () => showHomePanel('achievements'));
   EL.homeSettingsBtn.addEventListener('click', () => showHomePanel('settings'));

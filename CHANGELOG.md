@@ -101,3 +101,9 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Fixed installed iOS PWA notch overlap on the home and game-over overlays
 - Applied shared safe-area spacing to overlays, modals, the app root, and mobile control decks
 - Bumped the service-worker cache and visible version marker for the safe-area fix
+
+## v0.017
+
+- Reworked the home screen around a Cyber Card Stack mode selector
+- Moved Skins into a popup and added it to the Mission Control-style home tiles
+- Added richer home action tile metadata for skins, achievements, stats, and controls

@@ -59,23 +59,42 @@
     <div class="overlay" id="start-overlay">
       <div class="game-title">SNAKE MASTER</div>
       <div class="subtitle">Neon Edition</div>
-      <div class="version-pill" id="app-version">v0.016</div>
+      <div class="version-pill" id="app-version">v0.017</div>
 
-      <div class="glass-panel">
-        <div class="panel-title">Choose Mode</div>
-        <div class="modes-grid" id="modes-grid"></div>
-      </div>
-
-      <div class="glass-panel">
-        <div class="panel-title">Skins &amp; Progress</div>
-        <div class="skins-grid" id="skins-grid"></div>
+      <div class="mode-stack-panel">
+        <div class="mode-stack-head">
+          <div class="panel-title">Choose Mode</div>
+          <div class="mode-stack-hint">Tap a card</div>
+        </div>
+        <div class="modes-grid mode-stack" id="modes-grid"></div>
       </div>
 
       <div class="home-actions" aria-label="Home panels">
-        <button class="home-action" id="home-how-btn" type="button">How</button>
-        <button class="home-action" id="home-stats-btn" type="button">Stats</button>
-        <button class="home-action" id="home-achievements-btn" type="button">Achievements</button>
-        <button class="home-action" id="home-settings-btn" type="button">Settings</button>
+        <button class="home-action" id="home-skins-btn" type="button">
+          <span class="home-action-kicker">Loadout</span>
+          <span class="home-action-label">Skins</span>
+          <span class="home-action-meta" id="home-skins-meta">Cyber active</span>
+        </button>
+        <button class="home-action" id="home-achievements-btn" type="button">
+          <span class="home-action-kicker">Progress</span>
+          <span class="home-action-label">Achievements</span>
+          <span class="home-action-meta" id="home-achievements-meta">0/100 unlocked</span>
+        </button>
+        <button class="home-action" id="home-stats-btn" type="button">
+          <span class="home-action-kicker">Records</span>
+          <span class="home-action-label">Stats</span>
+          <span class="home-action-meta" id="home-stats-meta">0 runs</span>
+        </button>
+        <button class="home-action" id="home-how-btn" type="button">
+          <span class="home-action-kicker">Guide</span>
+          <span class="home-action-label">How</span>
+          <span class="home-action-meta">Rules & controls</span>
+        </button>
+        <button class="home-action home-action-wide" id="home-settings-btn" type="button">
+          <span class="home-action-kicker">Device</span>
+          <span class="home-action-label">Settings</span>
+          <span class="home-action-meta" id="home-settings-meta">Swipe controls</span>
+        </button>
       </div>
 
       <button class="btn btn-green" id="start-btn">▶ &nbsp;START GAME</button>
@@ -155,6 +174,11 @@
           <b>Achievements:</b> earn badges from food, distance, modes, multipliers, and lifetime progress.<br>
           <b>Controls:</b> desktop uses arrow keys. Mobile can use swipe or on-screen keys from Settings.
         </div>
+      </div>
+
+      <div class="modal-section hidden" id="home-skins-panel">
+        <div class="skins-summary" id="skins-summary">Choose your snake skin.</div>
+        <div class="skins-grid" id="skins-grid"></div>
       </div>
 
       <div class="modal-section hidden" id="home-stats-panel">
