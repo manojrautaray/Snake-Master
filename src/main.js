@@ -363,7 +363,7 @@ function persistRecords() {
 
   LS.unlockAchievements(newAchievements);
 
-  return { stats, newAchievements };
+  return { stats, newAchievements, run };
 }
 
 function endGame() {
@@ -382,24 +382,63 @@ function endGame() {
   renderAchievementsPanel();
 
   setTimeout(() => {
-    const achievementLabel = progression.newAchievements.length
-      ? ` • ${progression.newAchievements.length} Unlock${progression.newAchievements.length > 1 ? 's' : ''}`
-      : '';
-    EL.goModeLabel.textContent = `${state.currentMode.name} • ${state.gameOverReason === 'timeout' ? 'Time Up' : 'This Run'}${achievementLabel}`;
-    EL.goScore.textContent = state.score;
-    EL.goDist.textContent = `${state.distance.toFixed(2)} km`;
-    EL.goMult.textContent = `${state.maxMultiplier}x`;
+    renderRunReport(progression, isNewScore, isNewDist);
     renderRunAchievements(progression.newAchievements);
-    EL.goBest.textContent = getModeBestScore();
-    EL.goBestdist.textContent = `${getModeBestDistance().toFixed(2)} km`;
-    EL.goBest.classList.toggle('new-best', isNewScore);
-    EL.goBestdist.classList.toggle('new-best', isNewDist);
     document.body.classList.add('menu-open');
     EL.goOv.classList.remove('hidden');
     if (progression.newAchievements.length) {
       vibrate(HAPTICS.unlock);
     }
   }, 420);
+}
+
+function renderRunReport(progression, isNewScore, isNewDist) {
+  const run = progression.run;
+  const accent = state.currentMode.accent;
+  const unlockCount = progression.newAchievements.length;
+  const achievementLabel = unlockCount
+    ? ` + ${unlockCount} unlock${unlockCount > 1 ? 's' : ''}`
+    : '';
+
+  EL.goOv.style.setProperty('--report-accent', accent);
+  EL.goOv.style.setProperty('--report-accent-rgb', hexToRgb(accent));
+  EL.goModeLabel.textContent = `${state.currentMode.name} report${achievementLabel}`;
+  EL.goOutcome.textContent = getGameOverOutcome();
+  EL.goModeChip.textContent = state.currentMode.tag;
+  EL.goScore.textContent = run.score;
+  EL.goDist.textContent = `${run.distance.toFixed(2)} km`;
+  EL.goMult.textContent = `${run.maxMultiplier}x`;
+  EL.goFood.textContent = run.foodEaten;
+  EL.goTime.textContent = formatSeconds(run.durationSeconds);
+  EL.goPaceLabel.textContent = state.currentMode.timerSeconds ? 'Clock' : 'Speed';
+  EL.goPace.textContent = state.currentMode.timerSeconds
+    ? `${Math.ceil(Math.max(0, state.modeTimeLeft))}s`
+    : state.speedLevel;
+  EL.goSkinName.textContent = state.currentSkin.name;
+  EL.goSkinSwatch.style.background = `linear-gradient(90deg, ${state.currentSkin.tail}, ${state.currentSkin.body}, ${state.currentSkin.head})`;
+  EL.goSkinSwatch.style.boxShadow = `0 0 14px ${state.currentSkin.glow}`;
+  EL.goBest.textContent = getModeBestScore();
+  EL.goBestdist.textContent = `${getModeBestDistance().toFixed(2)} km`;
+  EL.goBest.classList.toggle('new-best', isNewScore);
+  EL.goBestdist.classList.toggle('new-best', isNewDist);
+  EL.goBestScoreTag.classList.toggle('hidden', !isNewScore);
+  EL.goBestDistTag.classList.toggle('hidden', !isNewDist);
+  renderNewBestSummary(isNewScore, isNewDist);
+}
+
+function renderNewBestSummary(isNewScore, isNewDist) {
+  const labels = [];
+  if (isNewScore) labels.push('New score best');
+  if (isNewDist) labels.push('New distance best');
+
+  EL.goNewBests.classList.toggle('hidden', labels.length === 0);
+  EL.goNewBests.textContent = labels.join(' • ');
+}
+
+function getGameOverOutcome() {
+  if (state.gameOverReason === 'timeout') return 'Time Up';
+  if (state.gameOverReason === 'wall') return 'Wall Crash';
+  return 'Snake Collision';
 }
 
 function loop(timestamp) {
@@ -692,10 +731,18 @@ function onModeStackPointerCancel() {
 function renderRunAchievements(newAchievements) {
   EL.goAchievements.classList.toggle('hidden', newAchievements.length === 0);
   EL.goAchievementsList.innerHTML = '';
+  EL.goAchievementsHeader.textContent = `${newAchievements.length} Achievement Unlock${newAchievements.length === 1 ? '' : 's'}`;
 
   newAchievements.forEach(achievement => {
     const item = document.createElement('div');
     item.className = 'go-achievement-item';
+
+    const medal = document.createElement('div');
+    medal.className = 'go-achievement-medal';
+    medal.textContent = achievement.badge;
+
+    const content = document.createElement('div');
+    content.className = 'go-achievement-content';
 
     const name = document.createElement('div');
     name.className = 'go-achievement-name';
@@ -705,7 +752,8 @@ function renderRunAchievements(newAchievements) {
     description.className = 'go-achievement-desc';
     description.textContent = achievement.description;
 
-    item.append(name, description);
+    content.append(name, description);
+    item.append(medal, content);
     EL.goAchievementsList.appendChild(item);
   });
 }

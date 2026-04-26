@@ -59,7 +59,7 @@
     <div class="overlay" id="start-overlay">
       <div class="game-title">SNAKE MASTER</div>
       <div class="subtitle">Neon Edition</div>
-      <div class="version-pill" id="app-version">v0.020</div>
+      <div class="version-pill" id="app-version">v0.023</div>
 
       <div class="mode-stack-panel">
         <div class="mode-stack-head">
@@ -107,14 +107,22 @@
     <!-- Countdown -->
     <div id="cd-wrap"><div id="cd-num"></div></div>
 
-    <!-- Game Over -->
+    <!-- Run Report -->
     <div class="overlay hidden" id="go-overlay">
-      <div class="go-title">GAME OVER</div>
+      <div class="go-report-kicker">Mission Complete</div>
+      <div class="go-title">RUN REPORT</div>
 
-      <!-- THIS RUN — big & prominent -->
       <div class="go-run-panel">
-        <div class="go-run-label" id="go-mode-label">This Run</div>
+        <div class="go-run-topline">
+          <div>
+            <div class="go-run-label" id="go-mode-label">This Run</div>
+            <div class="go-outcome" id="go-outcome">Run Ended</div>
+          </div>
+          <div class="go-mode-chip" id="go-mode-chip">Classic</div>
+        </div>
+        <div class="go-score-label">Final Score</div>
         <div class="go-score" id="go-score">0</div>
+        <div class="go-new-bests hidden" id="go-new-bests"></div>
         <div class="go-run-stats">
           <div class="go-run-stat">
             <div class="rs-label">Distance</div>
@@ -125,22 +133,44 @@
             <div class="rs-val pink" id="go-mult">1x</div>
           </div>
         </div>
+        <div class="go-report-grid">
+          <div class="go-report-stat">
+            <div class="rs-label">Food</div>
+            <div class="rs-val" id="go-food">0</div>
+          </div>
+          <div class="go-report-stat">
+            <div class="rs-label">Time</div>
+            <div class="rs-val" id="go-time">0:00</div>
+          </div>
+          <div class="go-report-stat">
+            <div class="rs-label" id="go-pace-label">Speed</div>
+            <div class="rs-val" id="go-pace">1</div>
+          </div>
+          <div class="go-report-stat go-skin-report">
+            <div class="go-skin-swatch" id="go-skin-swatch"></div>
+            <div>
+              <div class="rs-label">Skin</div>
+              <div class="rs-val" id="go-skin-name">Cyber</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="go-achievements-panel hidden" id="go-achievements">
-        <div class="go-achievements-header">Achievement Unlocked</div>
+        <div class="go-achievements-header" id="go-achievements-header">Achievement Unlocks</div>
         <div class="go-achievements-list" id="go-achievements-list"></div>
       </div>
 
-      <!-- BEST — quieter, smaller -->
       <div class="go-best-panel">
         <div class="go-best-header" id="go-best-header">Personal Bests</div>
         <div class="go-best-row">
           <div class="go-best-stat">
+            <div class="go-best-tag hidden" id="go-best-score-tag">New Best</div>
             <div class="bs-label">Best Score</div>
             <div class="bs-val gold" id="go-best">0</div>
           </div>
           <div class="go-best-stat">
+            <div class="go-best-tag hidden" id="go-best-dist-tag">New Best</div>
             <div class="bs-label">Best Distance</div>
             <div class="bs-val green" id="go-bestdist">0.00 km</div>
           </div>
@@ -149,7 +179,7 @@
 
       <div class="btn-row">
         <button class="btn btn-green" id="restart-btn">▶ PLAY AGAIN</button>
-        <button class="btn btn-home"  id="home-btn">⌂ HOME</button>
+        <button class="btn btn-home"  id="home-btn">CHANGE MODE</button>
       </div>
     </div>
   </div>

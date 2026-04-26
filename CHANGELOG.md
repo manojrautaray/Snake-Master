@@ -137,3 +137,10 @@ All notable project checkpoints are tracked with git tags using this versioning 
 
 - Restored a clear short game description near the top of the README
 - Updated the README release badge and version examples for the latest docs checkpoint
+
+## v0.023
+
+- Reworked Game Over into a richer Run Report Card with outcome, mode, score, and new-best callouts
+- Added food eaten, run time, final pace, and active skin details to the post-run summary
+- Upgraded newly unlocked achievements into badge-style report cards
+- Bumped the visible app version and service-worker cache for the gameplay UI update
