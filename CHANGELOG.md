@@ -132,3 +132,8 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Redesigned the README as a visual project landing page with neon SVG hero and showcase panels
 - Added badges, mode/skin visuals, feature cards, and a richer GitHub-friendly layout
 - Kept the documentation aligned with the current PWA, home screen, progression, and release flow
+
+## v0.022
+
+- Restored a clear short game description near the top of the README
+- Updated the README release badge and version examples for the latest docs checkpoint

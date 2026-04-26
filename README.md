@@ -12,7 +12,7 @@
   <a href="https://manojrautaray.github.io/Snake-Master/">
     <img alt="Play Snake Master" src="https://img.shields.io/badge/PLAY_ON_GITHUB_PAGES-00ff88?style=for-the-badge&labelColor=050810&color=00ff88">
   </a>
-  <img alt="Version v0.021" src="https://img.shields.io/badge/version-v0.021-00eaff?style=for-the-badge&labelColor=050810">
+  <img alt="Version v0.022" src="https://img.shields.io/badge/version-v0.022-00eaff?style=for-the-badge&labelColor=050810">
   <img alt="PWA ready" src="https://img.shields.io/badge/PWA-installable-ff2d78?style=for-the-badge&labelColor=050810">
   <img alt="Vanilla JavaScript" src="https://img.shields.io/badge/vanilla-JavaScript-f7df1e?style=for-the-badge&labelColor=050810">
 </p>
@@ -23,6 +23,14 @@
   <img alt="Hardcore" src="https://img.shields.io/badge/HARDCORE-ff2d78?style=flat-square&labelColor=050810">
   <img alt="100 achievements" src="https://img.shields.io/badge/100_ACHIEVEMENTS-00ff88?style=flat-square&labelColor=050810">
   <img alt="Mobile controls" src="https://img.shields.io/badge/MOBILE_CONTROLS-00eaff?style=flat-square&labelColor=050810">
+</p>
+
+---
+
+<h2 align="center">What Is Snake Master?</h2>
+
+<p align="center">
+  Snake Master is a fast neon browser Snake game where you guide a glowing snake, collect food, grow longer, and chase high scores across Classic, Time Attack, and Hardcore modes. It keeps the original arcade loop simple, then adds skins, stats, achievements, mobile controls, and installable PWA support.
 </p>
 
 ---
@@ -171,7 +179,7 @@ Open `http://localhost:8000`.
 git push origin main
 ```
 
-Small improvements use tags such as `v0.019`, `v0.020`, `v0.021`. Medium milestones can move through `v0.100`, `v0.200`, and major resets can use `v1.000`, `v2.000`.
+Small improvements use tags such as `v0.020`, `v0.021`, `v0.022`. Medium milestones can move through `v0.100`, `v0.200`, and major resets can use `v1.000`, `v2.000`.
 
 ## Roadmap
 
