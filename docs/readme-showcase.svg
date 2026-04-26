@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">Snake Master visual feature showcase</title>
+  <desc id="desc">A colorful neon showcase for game modes, progression, mobile controls, PWA support, and the run loop.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#040812"/>
+      <stop offset=".55" stop-color="#06162a"/>
+      <stop offset="1" stop-color="#13051a"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" x2="1">
+      <stop offset="0" stop-color="#00eaff"/>
+      <stop offset="1" stop-color="#00ff88"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop offset="0" stop-color="#ffef5a"/>
+      <stop offset="1" stop-color="#ff9f1c"/>
+    </linearGradient>
+    <linearGradient id="pink" x1="0" x2="1">
+      <stop offset="0" stop-color="#ff2d78"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#09213a" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#020814" stop-opacity=".95"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#000814" flood-opacity=".65"/>
+    </filter>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0H0V44" fill="none" stroke="#00eaff" stroke-opacity=".07" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="760" rx="34" fill="url(#bg)"/>
+  <rect width="1280" height="760" rx="34" fill="url(#grid)"/>
+  <circle cx="1045" cy="140" r="250" fill="#00eaff" opacity=".08"/>
+  <circle cx="1140" cy="620" r="320" fill="#ff2d78" opacity=".09"/>
+  <circle cx="160" cy="610" r="260" fill="#00ff88" opacity=".06"/>
+
+  <g transform="translate(64 56)">
+    <text x="0" y="0" dominant-baseline="hanging" font-family="Orbitron, Rajdhani, monospace" font-size="20" letter-spacing="8" fill="#6d8299">VISUAL TOUR</text>
+    <text x="0" y="46" font-family="Orbitron, Rajdhani, monospace" font-size="42" letter-spacing="5" fill="url(#cyan)" filter="url(#glow)">BUILT LIKE A TINY ARCADE CABINET</text>
+  </g>
+
+  <g transform="translate(64 150)" filter="url(#soft)">
+    <rect width="360" height="275" rx="28" fill="url(#glass)" stroke="#00eaff" stroke-opacity=".38"/>
+    <text x="28" y="38" font-family="Orbitron, monospace" font-size="15" letter-spacing="5" fill="#00eaff">MODE DECK</text>
+    <g transform="translate(28 72)">
+      <rect x="0" y="0" width="304" height="56" rx="17" fill="#04101d" stroke="#00eaff" stroke-width="2"/>
+      <text x="22" y="35" font-family="Orbitron, monospace" font-size="18" letter-spacing="3" fill="#8ff7ff">CLASSIC</text>
+      <text x="218" y="35" font-family="Orbitron, monospace" font-size="12" letter-spacing="2" fill="#00ff88">ARCADE</text>
+    </g>
+    <g transform="translate(28 140)">
+      <rect x="0" y="0" width="304" height="56" rx="17" fill="#150f05" stroke="#ffd700" stroke-width="2"/>
+      <text x="22" y="35" font-family="Orbitron, monospace" font-size="18" letter-spacing="3" fill="#ffd700">TIME ATTACK</text>
+      <text x="220" y="35" font-family="Orbitron, monospace" font-size="12" letter-spacing="2" fill="#ffef5a">60 SEC</text>
+    </g>
+    <g transform="translate(28 208)">
+      <rect x="0" y="0" width="304" height="56" rx="17" fill="#180613" stroke="#ff2d78" stroke-width="2"/>
+      <text x="22" y="35" font-family="Orbitron, monospace" font-size="18" letter-spacing="3" fill="#ff2d78">HARDCORE</text>
+      <text x="214" y="35" font-family="Orbitron, monospace" font-size="12" letter-spacing="2" fill="#ff8ab7">2X SCORE</text>
+    </g>
+  </g>
+
+  <g transform="translate(460 150)" filter="url(#soft)">
+    <rect width="360" height="275" rx="28" fill="url(#glass)" stroke="#00ff88" stroke-opacity=".36"/>
+    <text x="28" y="38" font-family="Orbitron, monospace" font-size="15" letter-spacing="5" fill="#00ff88">PROGRESSION VAULT</text>
+    <text x="28" y="88" font-family="Orbitron, monospace" font-size="58" letter-spacing="3" fill="#d9f4ff">100</text>
+    <text x="160" y="78" font-family="Orbitron, monospace" font-size="16" letter-spacing="4" fill="#6d8299">ACHIEVEMENT</text>
+    <text x="160" y="105" font-family="Orbitron, monospace" font-size="16" letter-spacing="4" fill="#6d8299">BADGES</text>
+    <g transform="translate(30 135)">
+      <rect x="0" y="0" width="64" height="64" rx="18" fill="#03180f" stroke="#00ff88"/>
+      <path d="M32 11l7 14 16 2-12 12 3 16-14-8-14 8 3-16L9 27l16-2z" fill="#00ff88" filter="url(#glow)"/>
+      <rect x="82" y="0" width="64" height="64" rx="18" fill="#061827" stroke="#00eaff"/>
+      <path d="M114 12l18 10v21l-18 10-18-10V22z" fill="#00eaff" filter="url(#glow)"/>
+      <rect x="164" y="0" width="64" height="64" rx="18" fill="#1b1202" stroke="#ffd700"/>
+      <circle cx="196" cy="32" r="18" fill="#ffd700" filter="url(#glow)"/>
+      <rect x="246" y="0" width="64" height="64" rx="18" fill="#1a0614" stroke="#ff2d78"/>
+      <path d="M278 10l20 42h-40z" fill="#ff2d78" filter="url(#glow)"/>
+    </g>
+    <g transform="translate(30 225)">
+      <rect x="0" y="0" width="300" height="18" rx="9" fill="#0b1726" stroke="#1f3854"/>
+      <rect x="0" y="0" width="172" height="18" rx="9" fill="url(#cyan)" filter="url(#glow)"/>
+    </g>
+  </g>
+
+  <g transform="translate(856 150)" filter="url(#soft)">
+    <rect width="360" height="275" rx="28" fill="url(#glass)" stroke="#ffd700" stroke-opacity=".36"/>
+    <text x="28" y="38" font-family="Orbitron, monospace" font-size="15" letter-spacing="5" fill="#ffd700">MOBILE CONTROL BAY</text>
+    <rect x="38" y="75" width="126" height="126" rx="22" fill="#030b16" stroke="#00eaff" stroke-opacity=".45"/>
+    <g filter="url(#glow)">
+      <rect x="76" y="113" width="26" height="26" rx="5" fill="#00eaff"/>
+      <rect x="104" y="113" width="26" height="26" rx="5" fill="#00eaff" opacity=".9"/>
+      <rect x="104" y="141" width="26" height="26" rx="5" fill="#00eaff"/>
+      <rect x="52" y="141" width="22" height="22" rx="5" fill="#ff2d78"/>
+    </g>
+    <rect x="198" y="82" width="64" height="58" rx="16" fill="#020a16" stroke="#00eaff"/>
+    <text x="219" y="117" font-family="Orbitron, monospace" font-size="13" letter-spacing="2" fill="#00eaff">UP</text>
+    <rect x="172" y="154" width="64" height="58" rx="16" fill="#020a16" stroke="#00eaff"/>
+    <text x="190" y="189" font-family="Orbitron, monospace" font-size="13" letter-spacing="2" fill="#00eaff">L</text>
+    <rect x="246" y="154" width="64" height="58" rx="16" fill="#020a16" stroke="#00eaff"/>
+    <text x="264" y="189" font-family="Orbitron, monospace" font-size="13" letter-spacing="2" fill="#00eaff">R</text>
+    <rect x="210" y="220" width="64" height="34" rx="14" fill="#03180f" stroke="#00ff88"/>
+    <text x="225" y="242" font-family="Orbitron, monospace" font-size="11" letter-spacing="2" fill="#00ff88">SWIPE</text>
+  </g>
+
+  <g transform="translate(64 470)" filter="url(#soft)">
+    <rect width="1152" height="190" rx="30" fill="#030b16" stroke="#00eaff" stroke-opacity=".28"/>
+    <text x="30" y="42" font-family="Orbitron, monospace" font-size="15" letter-spacing="5" fill="#6d8299">RUN LOOP</text>
+    <g transform="translate(48 74)">
+      <rect width="164" height="70" rx="22" fill="#051424" stroke="#00eaff"/>
+      <text x="29" y="43" font-family="Orbitron, monospace" font-size="16" letter-spacing="3" fill="#00eaff">PICK MODE</text>
+      <path d="M184 35h54" stroke="#00eaff" stroke-width="3" stroke-linecap="round"/>
+      <path d="M238 35l-14-9v18z" fill="#00eaff"/>
+      <rect x="258" width="164" height="70" rx="22" fill="#051424" stroke="#00ff88"/>
+      <text x="288" y="43" font-family="Orbitron, monospace" font-size="16" letter-spacing="3" fill="#00ff88">SURVIVE</text>
+      <path d="M442 35h54" stroke="#00ff88" stroke-width="3" stroke-linecap="round"/>
+      <path d="M496 35l-14-9v18z" fill="#00ff88"/>
+      <rect x="516" width="164" height="70" rx="22" fill="#051424" stroke="#ffd700"/>
+      <text x="548" y="43" font-family="Orbitron, monospace" font-size="16" letter-spacing="3" fill="#ffd700">SCORE</text>
+      <path d="M700 35h54" stroke="#ffd700" stroke-width="3" stroke-linecap="round"/>
+      <path d="M754 35l-14-9v18z" fill="#ffd700"/>
+      <rect x="774" width="164" height="70" rx="22" fill="#051424" stroke="#ff2d78"/>
+      <text x="807" y="43" font-family="Orbitron, monospace" font-size="16" letter-spacing="3" fill="#ff2d78">UNLOCK</text>
+      <path d="M958 35h54" stroke="#ff2d78" stroke-width="3" stroke-linecap="round"/>
+      <path d="M1012 35l-14-9v18z" fill="#ff2d78"/>
+      <rect x="1032" width="64" height="70" rx="22" fill="#03180f" stroke="#00ff88"/>
+      <text x="1048" y="43" font-family="Orbitron, monospace" font-size="14" letter-spacing="1" fill="#00ff88">LOOP</text>
+    </g>
+  </g>
+
+  <g transform="translate(72 694)">
+    <text x="0" y="0" font-family="Rajdhani, monospace" font-size="20" letter-spacing="3" fill="#8aa4bd">STATIC HTML + CSS + CANVAS + WEB AUDIO + PWA</text>
+    <text x="760" y="0" font-family="Orbitron, monospace" font-size="18" letter-spacing="3" fill="url(#gold)">INSTALLABLE ON GITHUB PAGES</text>
+  </g>
+</svg>

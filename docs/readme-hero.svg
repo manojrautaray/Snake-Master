@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="520" viewBox="0 0 1280 520" role="img" aria-labelledby="title desc">
+  <title id="title">Snake Master Neon Edition</title>
+  <desc id="desc">A neon arcade banner with a snake game board, mode cards, and glowing UI panels.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050810"/>
+      <stop offset=".52" stop-color="#071a2f"/>
+      <stop offset="1" stop-color="#100318"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" x2="1">
+      <stop offset="0" stop-color="#00eaff"/>
+      <stop offset="1" stop-color="#00ff88"/>
+    </linearGradient>
+    <linearGradient id="pinkGold" x1="0" x2="1">
+      <stop offset="0" stop-color="#ff2d78"/>
+      <stop offset="1" stop-color="#ffd700"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" fill="none" stroke="#00eaff" stroke-opacity=".08" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="520" rx="34" fill="url(#bg)"/>
+  <rect width="1280" height="520" rx="34" fill="url(#grid)"/>
+  <circle cx="1120" cy="410" r="260" fill="#6f00ff" opacity=".10"/>
+  <circle cx="185" cy="98" r="220" fill="#00eaff" opacity=".10"/>
+
+  <g transform="translate(70 68)">
+    <text x="0" y="52" font-family="Orbitron, Rajdhani, monospace" font-size="56" letter-spacing="10" font-weight="900" fill="url(#titleGrad)" filter="url(#glow)">SNAKE MASTER</text>
+    <text x="4" y="92" font-family="Rajdhani, monospace" font-size="19" letter-spacing="12" fill="#8aa4bd" opacity=".75">NEON EDITION</text>
+    <rect x="4" y="122" width="112" height="34" rx="17" fill="#001624" stroke="#00eaff" stroke-opacity=".45"/>
+    <text x="28" y="145" font-family="Orbitron, monospace" font-size="13" letter-spacing="2" fill="#00eaff">v0.021</text>
+  </g>
+
+  <g transform="translate(78 260)">
+    <rect x="0" y="0" width="245" height="92" rx="22" fill="#020a16" stroke="#00eaff" stroke-opacity=".32"/>
+    <text x="26" y="34" font-family="Orbitron, monospace" font-size="14" letter-spacing="4" fill="#6d8299">LOADOUT</text>
+    <text x="26" y="66" font-family="Orbitron, monospace" font-size="25" letter-spacing="3" fill="#d9f4ff">SKINS</text>
+    <rect x="16" y="18" width="5" height="56" rx="3" fill="url(#titleGrad)" filter="url(#glow)"/>
+  </g>
+
+  <g transform="translate(354 224)">
+    <rect x="40" y="22" width="492" height="230" rx="34" fill="#021321" stroke="#00eaff" stroke-opacity=".18" transform="rotate(-3 286 137)"/>
+    <rect x="22" y="38" width="492" height="230" rx="34" fill="#031423" stroke="#ffd700" stroke-opacity=".24" transform="rotate(3 268 153)"/>
+    <rect x="0" y="54" width="492" height="230" rx="34" fill="#051424" stroke="#ff2d78" stroke-width="3" filter="url(#glow)"/>
+    <text x="38" y="102" font-family="Orbitron, monospace" font-size="15" letter-spacing="4" fill="#ff2d78">CURRENT MODE</text>
+    <text x="38" y="160" font-family="Orbitron, monospace" font-size="50" letter-spacing="5" fill="#ff2d78">HARDCORE</text>
+    <text x="40" y="202" font-family="Rajdhani, monospace" font-size="25" fill="#d9f4ff">Solid walls. Faster start. Bigger reward.</text>
+    <rect x="40" y="226" width="104" height="32" rx="16" fill="#020a16" stroke="#8aa4bd" stroke-opacity=".35"/>
+    <text x="59" y="247" font-family="Orbitron, monospace" font-size="12" letter-spacing="2" fill="#8aa4bd">NO MERCY</text>
+    <rect x="164" y="226" width="96" height="32" rx="16" fill="#020a16" stroke="#8aa4bd" stroke-opacity=".35"/>
+    <text x="188" y="247" font-family="Orbitron, monospace" font-size="12" letter-spacing="2" fill="#8aa4bd">2X SCORE</text>
+  </g>
+
+  <g transform="translate(920 82)">
+    <rect x="0" y="0" width="270" height="270" rx="32" fill="#030b16" stroke="#00eaff" stroke-opacity=".35"/>
+    <rect x="24" y="24" width="222" height="222" rx="22" fill="none" stroke="#00eaff" stroke-opacity=".16"/>
+    <g filter="url(#glow)">
+      <rect x="70" y="88" width="42" height="42" rx="8" fill="#00eaff"/>
+      <rect x="114" y="88" width="42" height="42" rx="8" fill="#00eaff" opacity=".92"/>
+      <rect x="158" y="88" width="42" height="42" rx="8" fill="#00eaff" opacity=".84"/>
+      <rect x="158" y="132" width="42" height="42" rx="8" fill="#00eaff" opacity=".92"/>
+      <rect x="158" y="176" width="42" height="42" rx="8" fill="#00eaff"/>
+      <rect x="76" y="176" width="34" height="34" rx="7" fill="#ff2d78"/>
+    </g>
+    <circle cx="180" cy="198" r="4" fill="#050810"/>
+    <circle cx="190" cy="198" r="4" fill="#050810"/>
+  </g>
+
+  <g transform="translate(850 386)">
+    <rect x="0" y="0" width="330" height="62" rx="18" fill="#03180f" stroke="#00ff88" stroke-width="2"/>
+    <text x="70" y="39" font-family="Orbitron, monospace" font-size="22" letter-spacing="5" fill="#00ff88" filter="url(#glow)">START RUN</text>
+  </g>
+</svg>

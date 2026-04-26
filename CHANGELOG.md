@@ -126,3 +126,9 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Made the Start button taller and themed it with the selected mode color
 - Added an active-skin color rail to the Skins home tile
 - Replaced the README with a richer, up-to-date project overview
+
+## v0.021
+
+- Redesigned the README as a visual project landing page with neon SVG hero and showcase panels
+- Added badges, mode/skin visuals, feature cards, and a richer GitHub-friendly layout
+- Kept the documentation aligned with the current PWA, home screen, progression, and release flow
