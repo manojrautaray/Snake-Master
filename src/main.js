@@ -362,6 +362,7 @@ function persistRecords() {
   const newAchievements = evaluateAchievements(ACHIEVEMENTS, getAchievementContext(run, stats), unlocked);
 
   LS.unlockAchievements(newAchievements);
+  LS.addPendingAchievementCount(newAchievements.length);
 
   return { stats, newAchievements, run };
 }
@@ -380,10 +381,11 @@ function endGame() {
   renderSkinsPanel();
   renderStatsPanel();
   renderAchievementsPanel();
+  updateHomeActionMeta();
 
   setTimeout(() => {
     renderRunReport(progression, isNewScore, isNewDist);
-    renderRunAchievements(progression.newAchievements);
+    renderRunAchievementSummary(progression.newAchievements);
     document.body.classList.add('menu-open');
     EL.goOv.classList.remove('hidden');
     if (progression.newAchievements.length) {
@@ -395,14 +397,10 @@ function endGame() {
 function renderRunReport(progression, isNewScore, isNewDist) {
   const run = progression.run;
   const accent = state.currentMode.accent;
-  const unlockCount = progression.newAchievements.length;
-  const achievementLabel = unlockCount
-    ? ` + ${unlockCount} unlock${unlockCount > 1 ? 's' : ''}`
-    : '';
 
   EL.goOv.style.setProperty('--report-accent', accent);
   EL.goOv.style.setProperty('--report-accent-rgb', hexToRgb(accent));
-  EL.goModeLabel.textContent = `${state.currentMode.name} report${achievementLabel}`;
+  EL.goModeLabel.textContent = state.currentMode.name;
   EL.goOutcome.textContent = getGameOverOutcome();
   EL.goModeChip.textContent = state.currentMode.tag;
   EL.goScore.textContent = run.score;
@@ -612,6 +610,7 @@ function updateHomeActionMeta() {
   const modeStats = stats.modes[state.currentMode.id] || { gamesPlayed: 0 };
   const unlocked = LS.getAchievements();
   const unlockedCount = ACHIEVEMENTS.filter(achievement => unlocked[achievement.id]).length;
+  const pendingAchievements = LS.getPendingAchievementCount();
 
   EL.homeSkinsMeta.textContent = `${state.currentSkin.name} active`;
   EL.homeSkinsBtn.style.setProperty('--skin-head', state.currentSkin.head);
@@ -620,6 +619,8 @@ function updateHomeActionMeta() {
   EL.homeSkinsBtn.style.setProperty('--skin-glow', state.currentSkin.glow);
   EL.homeStatsMeta.textContent = `${formatCompactInt(modeStats.gamesPlayed)} ${modeStats.gamesPlayed === 1 ? 'run' : 'runs'}`;
   EL.homeAchievementsMeta.textContent = `${unlockedCount}/${ACHIEVEMENTS.length} unlocked`;
+  EL.homeAchievementsBadge.textContent = pendingAchievements > 99 ? '99+' : pendingAchievements;
+  EL.homeAchievementsBadge.classList.toggle('hidden', pendingAchievements === 0);
   EL.homeSettingsMeta.textContent = `${controlMode === 'keys' ? 'Keypad' : 'Swipe'} controls`;
 }
 
@@ -728,34 +729,13 @@ function onModeStackPointerCancel() {
   modeSwipeY0 = null;
 }
 
-function renderRunAchievements(newAchievements) {
-  EL.goAchievements.classList.toggle('hidden', newAchievements.length === 0);
-  EL.goAchievementsList.innerHTML = '';
-  EL.goAchievementsHeader.textContent = `${newAchievements.length} Achievement Unlock${newAchievements.length === 1 ? '' : 's'}`;
+function renderRunAchievementSummary(newAchievements) {
+  const unlockCount = newAchievements.length;
 
-  newAchievements.forEach(achievement => {
-    const item = document.createElement('div');
-    item.className = 'go-achievement-item';
-
-    const medal = document.createElement('div');
-    medal.className = 'go-achievement-medal';
-    medal.textContent = achievement.badge;
-
-    const content = document.createElement('div');
-    content.className = 'go-achievement-content';
-
-    const name = document.createElement('div');
-    name.className = 'go-achievement-name';
-    name.textContent = achievement.name;
-
-    const description = document.createElement('div');
-    description.className = 'go-achievement-desc';
-    description.textContent = achievement.description;
-
-    content.append(name, description);
-    item.append(medal, content);
-    EL.goAchievementsList.appendChild(item);
-  });
+  EL.goAchievements.classList.toggle('hidden', unlockCount === 0);
+  EL.goAchievementsHeader.textContent = 'Achievements';
+  EL.goAchievementCount.textContent = `+${unlockCount}`;
+  EL.goAchievementCaption.textContent = `${unlockCount} new achievement${unlockCount === 1 ? '' : 's'} unlocked`;
 }
 
 function renderSkinsPanel() {
@@ -939,6 +919,8 @@ function showHomePanel(panelId) {
   }
   if (panelId === 'achievements') {
     renderAchievementsPanel();
+    LS.clearPendingAchievementCount();
+    updateHomeActionMeta();
   }
   if (panelId === 'settings') {
     updateSettingsUI();

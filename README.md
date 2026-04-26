@@ -12,7 +12,7 @@
   <a href="https://manojrautaray.github.io/Snake-Master/">
     <img alt="Play Snake Master" src="https://img.shields.io/badge/PLAY_ON_GITHUB_PAGES-00ff88?style=for-the-badge&labelColor=050810&color=00ff88">
   </a>
-  <img alt="Version v0.023" src="https://img.shields.io/badge/version-v0.023-00eaff?style=for-the-badge&labelColor=050810">
+  <img alt="Version v0.024" src="https://img.shields.io/badge/version-v0.024-00eaff?style=for-the-badge&labelColor=050810">
   <img alt="PWA ready" src="https://img.shields.io/badge/PWA-installable-ff2d78?style=for-the-badge&labelColor=050810">
   <img alt="Vanilla JavaScript" src="https://img.shields.io/badge/vanilla-JavaScript-f7df1e?style=for-the-badge&labelColor=050810">
 </p>
@@ -179,7 +179,7 @@ Open `http://localhost:8000`.
 git push origin main
 ```
 
-Small improvements use tags such as `v0.021`, `v0.022`, `v0.023`. Medium milestones can move through `v0.100`, `v0.200`, and major resets can use `v1.000`, `v2.000`.
+Small improvements use tags such as `v0.022`, `v0.023`, `v0.024`. Medium milestones can move through `v0.100`, `v0.200`, and major resets can use `v1.000`, `v2.000`.
 
 ## Roadmap
 

@@ -59,7 +59,7 @@
     <div class="overlay" id="start-overlay">
       <div class="game-title">SNAKE MASTER</div>
       <div class="subtitle">Neon Edition</div>
-      <div class="version-pill" id="app-version">v0.023</div>
+      <div class="version-pill" id="app-version">v0.024</div>
 
       <div class="mode-stack-panel">
         <div class="mode-stack-head">
@@ -82,6 +82,7 @@
           <span class="home-action-meta" id="home-skins-meta">Cyber active</span>
         </button>
         <button class="home-action" id="home-achievements-btn" type="button">
+          <span class="home-action-badge hidden" id="home-achievements-badge">0</span>
           <span class="home-action-kicker">Progress</span>
           <span class="home-action-label">Achievements</span>
           <span class="home-action-meta" id="home-achievements-meta">0/100 unlocked</span>
@@ -109,8 +110,7 @@
 
     <!-- Run Report -->
     <div class="overlay hidden" id="go-overlay">
-      <div class="go-report-kicker">Mission Complete</div>
-      <div class="go-title">RUN REPORT</div>
+      <div class="go-title">GAME OVER</div>
 
       <div class="go-run-panel">
         <div class="go-run-topline">
@@ -158,7 +158,8 @@
 
       <div class="go-achievements-panel hidden" id="go-achievements">
         <div class="go-achievements-header" id="go-achievements-header">Achievement Unlocks</div>
-        <div class="go-achievements-list" id="go-achievements-list"></div>
+        <div class="go-achievement-count" id="go-achievement-count">0</div>
+        <div class="go-achievement-caption" id="go-achievement-caption">New achievements unlocked</div>
       </div>
 
       <div class="go-best-panel">

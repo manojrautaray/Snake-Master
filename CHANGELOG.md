@@ -144,3 +144,10 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added food eaten, run time, final pace, and active skin details to the post-run summary
 - Upgraded newly unlocked achievements into badge-style report cards
 - Bumped the visible app version and service-worker cache for the gameplay UI update
+
+## v0.024
+
+- Simplified Game Over back to a compact `GAME OVER` report without the extra mission/report wording
+- Replaced individual Game Over achievement cards with a small count summary
+- Added a persistent new-achievement notification badge on the home Achievements button
+- Cleared the achievement notification badge when the Achievements popup is opened

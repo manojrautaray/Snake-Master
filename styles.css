@@ -507,6 +507,28 @@ body::after {
   overflow: hidden;
   transition: border-color .15s, background .15s, box-shadow .15s, transform .15s;
 }
+.home-action-badge {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  z-index: 3;
+  min-width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,215,0,.42);
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.30), transparent 30%),
+    rgba(255,215,0,.16);
+  color: var(--gold);
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  letter-spacing: .6px;
+  text-shadow: 0 0 9px rgba(255,215,0,.72);
+  box-shadow: 0 0 16px rgba(255,215,0,.22);
+}
 .home-action::after {
   content: '';
   position: absolute;
@@ -975,15 +997,6 @@ body::after {
 }
 
 /* ── Game Over ──────────────────────────────────── */
-.go-report-kicker {
-  font-family: 'Orbitron', monospace;
-  font-size: 8px;
-  letter-spacing: 4px;
-  color: rgba(180,220,255,0.42);
-  text-transform: uppercase;
-  margin-top: 8px;
-  margin-bottom: 6px;
-}
 .go-title {
   font-family: 'Orbitron', monospace;
   font-size: clamp(20px, 5vw, 34px);
@@ -1133,10 +1146,16 @@ body::after {
 .go-achievements-panel {
   width: 100%;
   max-width: 430px;
-  background: rgba(28,20,0,0.58);
-  border: 1px solid rgba(255,215,0,0.24);
-  border-radius: 18px;
-  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 13px;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255,215,0,.16), transparent 42%),
+    rgba(28,20,0,0.48);
+  border: 1px solid rgba(255,215,0,0.22);
+  border-radius: 16px;
+  padding: 10px 14px;
   margin-bottom: 12px;
   box-shadow: 0 0 14px rgba(255,215,0,0.10);
 }
@@ -1149,58 +1168,33 @@ body::after {
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--gold);
-  margin-bottom: 8px;
-  text-align: center;
+  text-align: left;
+  grid-column: 2;
 }
-.go-achievements-list {
-  display: grid;
-  gap: 7px;
-  max-height: 170px;
-  overflow-y: auto;
-  padding-right: 3px;
-}
-.go-achievement-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255,215,0,0.06);
-  border: 1px solid rgba(255,215,0,0.12);
-  border-radius: 12px;
-  padding: 9px 10px;
-}
-.go-achievement-medal {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
+.go-achievement-count {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
   display: grid;
   place-items: center;
-  flex-shrink: 0;
+  grid-row: 1 / span 2;
   background:
     radial-gradient(circle at 35% 22%, rgba(255,255,255,.26), transparent 28%),
     linear-gradient(135deg, rgba(255,215,0,.24), rgba(255,107,43,.10));
   border: 1px solid rgba(255,215,0,.34);
   color: var(--gold);
   font-family: 'Orbitron', monospace;
-  font-size: 10px;
-  letter-spacing: .8px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
   text-shadow: 0 0 8px rgba(255,215,0,.7);
 }
-.go-achievement-content {
-  min-width: 0;
-  text-align: left;
-}
-.go-achievement-name {
-  font-family: 'Orbitron', monospace;
-  font-size: 9px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 3px;
-}
-.go-achievement-desc {
-  font-size: 11px;
+.go-achievement-caption {
+  font-size: 12px;
   line-height: 1.35;
   color: var(--text);
+  text-align: left;
+  grid-column: 2;
 }
 
 /* ── BEST section ── */

@@ -13,6 +13,9 @@ export const LS = {
   recordRun: run => recordRun(run),
   getAchievements: () => readAchievements(),
   unlockAchievements: achievements => unlockAchievements(achievements),
+  getPendingAchievementCount: () => getPendingAchievementCount(),
+  addPendingAchievementCount: count => addPendingAchievementCount(count),
+  clearPendingAchievementCount: () => clearPendingAchievementCount(),
 };
 
 function readMetric(metric, modeId) {
@@ -161,4 +164,21 @@ function unlockAchievements(achievements) {
   });
   localStorage.setItem('sm_achievements', JSON.stringify(unlocked));
   return unlocked;
+}
+
+function getPendingAchievementCount() {
+  return parseInt(localStorage.getItem('sm_pending_achievements') || '0', 10) || 0;
+}
+
+function addPendingAchievementCount(count) {
+  if (!count) return getPendingAchievementCount();
+
+  const nextCount = getPendingAchievementCount() + count;
+  localStorage.setItem('sm_pending_achievements', String(nextCount));
+  return nextCount;
+}
+
+function clearPendingAchievementCount() {
+  localStorage.removeItem('sm_pending_achievements');
+  return 0;
 }
