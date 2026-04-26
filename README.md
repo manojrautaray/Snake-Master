@@ -12,7 +12,7 @@
   <a href="https://manojrautaray.github.io/Snake-Master/">
     <img alt="Play Snake Master" src="https://img.shields.io/badge/PLAY_ON_GITHUB_PAGES-00ff88?style=for-the-badge&labelColor=050810&color=00ff88">
   </a>
-  <img alt="Version v0.024" src="https://img.shields.io/badge/version-v0.024-00eaff?style=for-the-badge&labelColor=050810">
+  <img alt="Version v0.025" src="https://img.shields.io/badge/version-v0.025-00eaff?style=for-the-badge&labelColor=050810">
   <img alt="PWA ready" src="https://img.shields.io/badge/PWA-installable-ff2d78?style=for-the-badge&labelColor=050810">
   <img alt="Vanilla JavaScript" src="https://img.shields.io/badge/vanilla-JavaScript-f7df1e?style=for-the-badge&labelColor=050810">
 </p>
@@ -51,7 +51,7 @@
     </td>
     <td width="25%">
       <h3>Run Feel</h3>
-      <p>Canvas glow, particles, screen shake, generated audio, and quick arcade pacing.</p>
+      <p>Canvas glow, particles, screen shake, generated audio, quick pacing, and shareable run summaries.</p>
     </td>
     <td width="25%">
       <h3>Progression</h3>
@@ -179,16 +179,15 @@ Open `http://localhost:8000`.
 git push origin main
 ```
 
-Small improvements use tags such as `v0.022`, `v0.023`, `v0.024`. Medium milestones can move through `v0.100`, `v0.200`, and major resets can use `v1.000`, `v2.000`.
+Small improvements use tags such as `v0.023`, `v0.024`, `v0.025`. Medium milestones can move through `v0.100`, `v0.200`, and major resets can use `v1.000`, `v2.000`.
 
 ## Roadmap
 
 | Idea | Why It Could Be Fun |
 |---|---|
-| Daily Challenge | Gives players a reason to return |
-| Share Score | Makes strong runs easy to brag about |
+| Daily Challenge | Gives players a fresh target each day |
 | More Themes | Lets skins evolve into full visual styles |
-| Run Report Cards | Makes every game-over screen feel rewarding |
+| Global Leaderboard | Gives high-score chasers a bigger mountain |
 | Power-Up Experiments | Adds variety while preserving arcade tension |
 
 ## License

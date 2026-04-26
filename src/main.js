@@ -75,6 +75,8 @@ let controlMode = LS.getControlMode();
 let modeSwipeX0 = null;
 let modeSwipeY0 = null;
 let suppressModeCardClick = false;
+let lastShareRun = null;
+let shareStatusTimer = null;
 
 function resize() {
   const hudHeight = EL.hud.getBoundingClientRect().height || 38;
@@ -421,6 +423,8 @@ function renderRunReport(progression, isNewScore, isNewDist) {
   EL.goBestdist.classList.toggle('new-best', isNewDist);
   EL.goBestScoreTag.classList.toggle('hidden', !isNewScore);
   EL.goBestDistTag.classList.toggle('hidden', !isNewDist);
+  EL.goShareStatus.classList.add('hidden');
+  lastShareRun = buildShareRun(run);
   renderNewBestSummary(isNewScore, isNewDist);
 }
 
@@ -437,6 +441,83 @@ function getGameOverOutcome() {
   if (state.gameOverReason === 'timeout') return 'Time Up';
   if (state.gameOverReason === 'wall') return 'Wall Crash';
   return 'Snake Collision';
+}
+
+function buildShareRun(run) {
+  return {
+    title: 'Snake Master',
+    text: [
+      `I scored ${formatCompactInt(run.score)} in Snake Master ${state.currentMode.name}.`,
+      `Distance: ${run.distance.toFixed(2)} km | Food: ${run.foodEaten} | Multi: ${run.maxMultiplier}x`,
+      `Skin: ${state.currentSkin.name}`,
+    ].join('\n'),
+    url: getGameUrl(),
+  };
+}
+
+function getGameUrl() {
+  const url = new URL(window.location.href);
+  url.hash = '';
+  url.search = '';
+  return url.toString();
+}
+
+async function shareRunScore() {
+  if (!lastShareRun) return;
+
+  try {
+    if (navigator.share) {
+      await navigator.share(lastShareRun);
+      showShareStatus('Shared');
+      return;
+    }
+
+    const copied = await copyToClipboard(`${lastShareRun.text}\nPlay: ${lastShareRun.url}`);
+    showShareStatus(copied ? 'Copied to clipboard' : 'Copy unavailable', copied ? '' : 'error');
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      showShareStatus('Share cancelled');
+      return;
+    }
+    const copied = await copyToClipboard(`${lastShareRun.text}\nPlay: ${lastShareRun.url}`);
+    showShareStatus(copied ? 'Copied to clipboard' : 'Share unavailable', copied ? '' : 'error');
+  }
+}
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_) {
+    // Fall back to the older selection copy path below.
+  }
+
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-9999px';
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    return document.execCommand('copy');
+  } catch (_) {
+    return false;
+  } finally {
+    textArea.remove();
+  }
+}
+
+function showShareStatus(message, tone = '') {
+  clearTimeout(shareStatusTimer);
+  EL.goShareStatus.textContent = message;
+  EL.goShareStatus.classList.toggle('error', tone === 'error');
+  EL.goShareStatus.classList.remove('hidden');
+  shareStatusTimer = setTimeout(() => {
+    EL.goShareStatus.classList.add('hidden');
+  }, 2200);
 }
 
 function loop(timestamp) {
@@ -1051,6 +1132,7 @@ function init() {
     state.gameStarted = false;
     startWithCountdown();
   });
+  EL.shareBtn.addEventListener('click', shareRunScore);
 
   EL.homeBtn.addEventListener('click', () => {
     EL.goOv.classList.add('hidden');

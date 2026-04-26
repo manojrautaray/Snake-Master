@@ -835,6 +835,17 @@ body::after {
   color: var(--muted); font-size: 10px; padding: 9px 20px;
 }
 .btn.btn-home:hover { background: rgba(180,220,255,0.11); color: var(--text); }
+.btn.btn-share {
+  border-color: var(--gold);
+  background: rgba(255,215,0,0.08);
+  color: var(--gold);
+  font-size: 10px;
+  padding: 9px 20px;
+}
+.btn.btn-share:hover {
+  background: rgba(255,215,0,0.17);
+  box-shadow: 0 0 14px rgba(255,215,0,0.22);
+}
 
 .btn-row {
   display: flex; gap: 10px; align-items: center;
@@ -1238,6 +1249,23 @@ body::after {
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow: 0 0 10px rgba(0,255,136,.20);
+}
+.go-share-status {
+  width: 100%;
+  max-width: 430px;
+  min-height: 24px;
+  margin-top: 4px;
+  color: var(--green);
+  font-family: 'Orbitron', monospace;
+  font-size: 8px;
+  letter-spacing: 1.4px;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(0,255,136,.55);
+}
+.go-share-status.error {
+  color: var(--pink);
+  text-shadow: 0 0 8px rgba(255,45,120,.55);
 }
 .go-best-stat .bs-label {
   font-size: 8px; color: rgba(180,220,255,0.35);

@@ -151,3 +151,10 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Replaced individual Game Over achievement cards with a small count summary
 - Added a persistent new-achievement notification badge on the home Achievements button
 - Cleared the achievement notification badge when the Achievements popup is opened
+
+## v0.025
+
+- Added a Share Score action to the Game Over screen
+- Used native device sharing when available and clipboard copy as a desktop fallback
+- Added compact share status feedback after sharing, copying, or cancelling
+- Bumped the visible app version and service-worker cache for the share feature

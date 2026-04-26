@@ -39,6 +39,8 @@ export const EL = {
   statsGrid: byId('stats-grid'),
   startBtn: byId('start-btn'),
   restartBtn: byId('restart-btn'),
+  shareBtn: byId('share-btn'),
+  goShareStatus: byId('go-share-status'),
   homeBtn: byId('home-btn'),
   hSpeedLabel: byId('h-speed-label'),
   hScore: byId('h-score'),
