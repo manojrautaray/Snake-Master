@@ -158,3 +158,10 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Used native device sharing when available and clipboard copy as a desktop fallback
 - Added compact share status feedback after sharing, copying, or cancelling
 - Bumped the visible app version and service-worker cache for the share feature
+
+## v0.026
+
+- Upgraded Share Score to generate a neon PNG score card from the Game Over run data
+- Added image-file sharing through the Web Share API where supported
+- Added image clipboard fallback before falling back to text-only sharing
+- Matched the share card layout to the approved visual mockup with score, mode, stats, snake preview, achievements count, and game link

@@ -70,6 +70,14 @@ const HAPTICS = {
   countdownGo: 18,
 };
 
+const SHARE_CARD = {
+  width: 1080,
+  height: 1920,
+  url: 'https://manojrautaray.github.io/Snake-Master/',
+  urlLabel: 'manojrautaray.github.io/Snake-Master',
+  fileName: 'snake-master-score.png',
+};
+
 let activeHomePanel = null;
 let controlMode = LS.getControlMode();
 let modeSwipeX0 = null;
@@ -424,7 +432,7 @@ function renderRunReport(progression, isNewScore, isNewDist) {
   EL.goBestScoreTag.classList.toggle('hidden', !isNewScore);
   EL.goBestDistTag.classList.toggle('hidden', !isNewDist);
   EL.goShareStatus.classList.add('hidden');
-  lastShareRun = buildShareRun(run);
+  lastShareRun = buildShareRun(run, progression.newAchievements.length);
   renderNewBestSummary(isNewScore, isNewDist);
 }
 
@@ -443,45 +451,489 @@ function getGameOverOutcome() {
   return 'Snake Collision';
 }
 
-function buildShareRun(run) {
+function buildShareRun(run, achievementCount) {
+  const paceLabel = state.currentMode.timerSeconds ? 'Clock' : 'Speed';
+  const paceValue = state.currentMode.timerSeconds
+    ? `${Math.ceil(Math.max(0, state.modeTimeLeft))}s`
+    : state.speedLevel;
+
   return {
     title: 'Snake Master',
+    score: run.score,
+    distance: run.distance,
+    foodEaten: run.foodEaten,
+    maxMultiplier: run.maxMultiplier,
+    durationSeconds: run.durationSeconds,
+    achievementCount,
+    outcome: getGameOverOutcome(),
+    modeName: state.currentMode.name,
+    modeTag: state.currentMode.tag,
+    modeAccent: state.currentMode.accent,
+    skinName: state.currentSkin.name,
+    skinHead: state.currentSkin.head,
+    skinBody: state.currentSkin.body,
+    skinTail: state.currentSkin.tail,
+    skinGlow: state.currentSkin.glow,
+    foodColor: state.currentSkin.food,
+    paceLabel,
+    paceValue,
     text: [
       `I scored ${formatCompactInt(run.score)} in Snake Master ${state.currentMode.name}.`,
       `Distance: ${run.distance.toFixed(2)} km | Food: ${run.foodEaten} | Multi: ${run.maxMultiplier}x`,
       `Skin: ${state.currentSkin.name}`,
     ].join('\n'),
-    url: getGameUrl(),
+    url: SHARE_CARD.url,
   };
-}
-
-function getGameUrl() {
-  const url = new URL(window.location.href);
-  url.hash = '';
-  url.search = '';
-  return url.toString();
 }
 
 async function shareRunScore() {
   if (!lastShareRun) return;
 
+  showShareStatus('Preparing score card', '', 0);
+
+  let imageFile;
   try {
-    if (navigator.share) {
-      await navigator.share(lastShareRun);
-      showShareStatus('Shared');
+    imageFile = await createShareCardFile(lastShareRun);
+  } catch (_) {
+    const copied = await copyToClipboard(getShareText(lastShareRun));
+    showShareStatus(copied ? 'Score text copied' : 'Share unavailable', copied ? '' : 'error');
+    return;
+  }
+
+  if (navigator.share && canShareFiles([imageFile])) {
+    try {
+      await navigator.share({
+        title: lastShareRun.title,
+        text: lastShareRun.text,
+        url: lastShareRun.url,
+        files: [imageFile],
+      });
+      showShareStatus('Score card shared');
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        showShareStatus('Share cancelled');
+        return;
+      }
+    }
+  }
+
+  try {
+    if (await copyImageToClipboard(imageFile)) {
+      showShareStatus('Score card copied');
       return;
     }
 
-    const copied = await copyToClipboard(`${lastShareRun.text}\nPlay: ${lastShareRun.url}`);
-    showShareStatus(copied ? 'Copied to clipboard' : 'Copy unavailable', copied ? '' : 'error');
+    if (navigator.share) {
+      await navigator.share(getTextSharePayload(lastShareRun));
+      showShareStatus('Shared text');
+      return;
+    }
+
+    const copied = await copyToClipboard(getShareText(lastShareRun));
+    showShareStatus(copied ? 'Score text copied' : 'Share unavailable', copied ? '' : 'error');
   } catch (error) {
     if (error?.name === 'AbortError') {
       showShareStatus('Share cancelled');
       return;
     }
-    const copied = await copyToClipboard(`${lastShareRun.text}\nPlay: ${lastShareRun.url}`);
-    showShareStatus(copied ? 'Copied to clipboard' : 'Share unavailable', copied ? '' : 'error');
+
+    const copied = await copyToClipboard(getShareText(lastShareRun));
+    showShareStatus(copied ? 'Score text copied' : 'Share unavailable', copied ? '' : 'error');
   }
+}
+
+function canShareFiles(files) {
+  try {
+    return Boolean(navigator.canShare?.({ files }));
+  } catch (_) {
+    return false;
+  }
+}
+
+function getTextSharePayload(shareRun) {
+  return {
+    title: shareRun.title,
+    text: shareRun.text,
+    url: shareRun.url,
+  };
+}
+
+function getShareText(shareRun) {
+  return `${shareRun.text}\nPlay: ${shareRun.url}`;
+}
+
+async function createShareCardFile(shareRun) {
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = SHARE_CARD.width;
+  canvas.height = SHARE_CARD.height;
+  const shareCtx = canvas.getContext('2d');
+
+  drawShareCard(shareCtx, shareRun);
+
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) {
+    throw new Error('Unable to create score card image.');
+  }
+
+  return new File([blob], SHARE_CARD.fileName, { type: 'image/png' });
+}
+
+async function copyImageToClipboard(file) {
+  try {
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') return false;
+
+    await navigator.clipboard.write([
+      new ClipboardItem({ [file.type]: file }),
+    ]);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function drawShareCard(shareCtx, shareRun) {
+  const { width, height } = SHARE_CARD;
+  const accent = shareRun.modeAccent;
+  const accentRgb = hexToRgb(accent);
+
+  shareCtx.clearRect(0, 0, width, height);
+  drawShareBackground(shareCtx, width, height, accentRgb);
+  drawShareMainCard(shareCtx, accentRgb);
+  drawShareHeader(shareCtx, shareRun);
+  drawShareScore(shareCtx, shareRun);
+  drawShareStats(shareCtx, shareRun);
+  drawShareSnakePreview(shareCtx, shareRun);
+  drawShareFooter(shareCtx, shareRun);
+}
+
+function drawShareBackground(shareCtx, width, height, accentRgb) {
+  const bg = shareCtx.createLinearGradient(0, 0, width, height);
+  bg.addColorStop(0, '#030711');
+  bg.addColorStop(0.55, '#06172b');
+  bg.addColorStop(1, '#140416');
+  shareCtx.fillStyle = bg;
+  shareCtx.fillRect(0, 0, width, height);
+
+  drawShareGlow(shareCtx, 110, 120, 420, '0,234,255', 0.22);
+  drawShareGlow(shareCtx, width - 70, height - 120, 520, '255,45,120', 0.20);
+  drawShareGlow(shareCtx, width * 0.62, height * 0.36, 430, accentRgb, 0.12);
+
+  shareCtx.save();
+  shareCtx.strokeStyle = 'rgba(0,234,255,.075)';
+  shareCtx.lineWidth = 1;
+  for (let x = -40; x < width + 40; x += 64) {
+    shareCtx.beginPath();
+    shareCtx.moveTo(x, 0);
+    shareCtx.lineTo(x + 170, height);
+    shareCtx.stroke();
+  }
+  for (let y = 0; y < height; y += 64) {
+    shareCtx.beginPath();
+    shareCtx.moveTo(0, y);
+    shareCtx.lineTo(width, y);
+    shareCtx.stroke();
+  }
+  shareCtx.restore();
+}
+
+function drawShareMainCard(shareCtx, accentRgb) {
+  const card = { x: 76, y: 82, w: 928, h: 1756, r: 58 };
+  const fill = shareCtx.createLinearGradient(card.x, card.y, card.x + card.w, card.y + card.h);
+  fill.addColorStop(0, 'rgba(7,28,48,.92)');
+  fill.addColorStop(0.55, 'rgba(3,10,24,.96)');
+  fill.addColorStop(1, 'rgba(12,6,26,.94)');
+
+  roundedRectPath(shareCtx, card.x, card.y, card.w, card.h, card.r);
+  shareCtx.fillStyle = fill;
+  shareCtx.fill();
+  shareCtx.lineWidth = 3;
+  shareCtx.strokeStyle = `rgba(${accentRgb},.46)`;
+  shareCtx.shadowColor = `rgba(${accentRgb},.40)`;
+  shareCtx.shadowBlur = 32;
+  shareCtx.stroke();
+  shareCtx.shadowBlur = 0;
+
+  roundedRectPath(shareCtx, card.x + 22, card.y + 22, card.w - 44, card.h - 44, 44);
+  shareCtx.strokeStyle = 'rgba(0,234,255,.12)';
+  shareCtx.lineWidth = 1.4;
+  shareCtx.stroke();
+}
+
+function drawShareHeader(shareCtx, shareRun) {
+  const titleGradient = shareCtx.createLinearGradient(260, 0, 820, 0);
+  titleGradient.addColorStop(0, '#00eaff');
+  titleGradient.addColorStop(1, '#00ff88');
+
+  shareCtx.save();
+  shareCtx.shadowColor = 'rgba(0,234,255,.55)';
+  shareCtx.shadowBlur = 20;
+  shareCtx.fillStyle = titleGradient;
+  shareCtx.font = '900 72px Orbitron, Rajdhani, sans-serif';
+  drawTrackingText(shareCtx, 'SNAKE MASTER', 540, 190, 7, 'center');
+  shareCtx.restore();
+
+  shareCtx.fillStyle = 'rgba(180,220,255,.54)';
+  shareCtx.font = '500 25px Rajdhani, sans-serif';
+  drawTrackingText(shareCtx, 'NEON EDITION', 540, 244, 12, 'center');
+
+  drawPill(shareCtx, 434, 278, 212, 44, '#001624', 'rgba(0,234,255,.35)');
+  shareCtx.fillStyle = 'rgba(0,234,255,.88)';
+  shareCtx.font = '700 20px Orbitron, sans-serif';
+  shareCtx.textAlign = 'center';
+  shareCtx.fillText(APP_VERSION, 540, 307);
+
+  shareCtx.fillStyle = shareRun.modeAccent;
+  shareCtx.font = '900 56px Orbitron, sans-serif';
+  shareCtx.shadowColor = shareRun.modeAccent;
+  shareCtx.shadowBlur = 18;
+  drawTrackingText(shareCtx, 'GAME OVER', 540, 430, 7, 'center');
+  shareCtx.shadowBlur = 0;
+
+  drawPill(shareCtx, 382, 475, 316, 64, `rgba(${hexToRgb(shareRun.modeAccent)},.13)`, `rgba(${hexToRgb(shareRun.modeAccent)},.48)`);
+  shareCtx.fillStyle = shareRun.modeAccent;
+  shareCtx.font = '700 25px Orbitron, sans-serif';
+  drawTrackingText(shareCtx, shareRun.modeName.toUpperCase(), 540, 516, 3, 'center');
+}
+
+function drawShareScore(shareCtx, shareRun) {
+  shareCtx.fillStyle = 'rgba(180,220,255,.48)';
+  shareCtx.font = '700 22px Orbitron, sans-serif';
+  drawTrackingText(shareCtx, 'FINAL SCORE', 540, 630, 4, 'center');
+
+  const scoreText = String(shareRun.score);
+  setFittedFont(shareCtx, scoreText, 760, 178, 100, '900', 'Orbitron, Rajdhani, sans-serif');
+  const scoreGradient = shareCtx.createLinearGradient(260, 650, 820, 760);
+  scoreGradient.addColorStop(0, '#fff45e');
+  scoreGradient.addColorStop(0.5, '#ffd700');
+  scoreGradient.addColorStop(1, '#ff8f1c');
+  shareCtx.fillStyle = scoreGradient;
+  shareCtx.textAlign = 'center';
+  shareCtx.shadowColor = 'rgba(255,215,0,.62)';
+  shareCtx.shadowBlur = 30;
+  shareCtx.fillText(scoreText, 540, 780);
+  shareCtx.shadowBlur = 0;
+
+  if (shareRun.achievementCount > 0) {
+    drawPill(shareCtx, 360, 826, 360, 54, 'rgba(255,215,0,.12)', 'rgba(255,215,0,.38)');
+    shareCtx.fillStyle = '#ffd700';
+    shareCtx.font = '700 20px Orbitron, sans-serif';
+    drawTrackingText(shareCtx, `+${shareRun.achievementCount} ACHIEVEMENTS`, 540, 860, 2.5, 'center');
+  }
+}
+
+function drawShareStats(shareCtx, shareRun) {
+  const stats = [
+    ['DISTANCE', `${shareRun.distance.toFixed(2)} KM`, '#00ff88'],
+    ['FOOD', String(shareRun.foodEaten), shareRun.foodColor],
+    ['MULTI', `${shareRun.maxMultiplier}X`, '#ff2d78'],
+    ['TIME', formatSeconds(shareRun.durationSeconds), '#00eaff'],
+  ];
+  const startX = 134;
+  const y = 940;
+  const w = 184;
+  const h = 128;
+  const gap = 28;
+
+  stats.forEach(([label, value, tone], index) => {
+    const x = startX + index * (w + gap);
+    roundedRectPath(shareCtx, x, y, w, h, 24);
+    shareCtx.fillStyle = 'rgba(0,12,28,.66)';
+    shareCtx.fill();
+    shareCtx.strokeStyle = `rgba(${colorToRgbString(tone)},.28)`;
+    shareCtx.lineWidth = 1.8;
+    shareCtx.stroke();
+
+    shareCtx.fillStyle = 'rgba(180,220,255,.43)';
+    shareCtx.font = '700 17px Orbitron, sans-serif';
+    drawTrackingText(shareCtx, label, x + w / 2, y + 42, 2, 'center');
+
+    shareCtx.fillStyle = tone;
+    shareCtx.font = '900 30px Orbitron, sans-serif';
+    shareCtx.textAlign = 'center';
+    shareCtx.shadowColor = tone;
+    shareCtx.shadowBlur = 10;
+    shareCtx.fillText(value, x + w / 2, y + 88);
+    shareCtx.shadowBlur = 0;
+  });
+}
+
+function drawShareSnakePreview(shareCtx, shareRun) {
+  const board = { x: 168, y: 1130, w: 744, h: 310, r: 34 };
+  roundedRectPath(shareCtx, board.x, board.y, board.w, board.h, board.r);
+  shareCtx.fillStyle = 'rgba(2,10,22,.72)';
+  shareCtx.fill();
+  shareCtx.strokeStyle = 'rgba(0,234,255,.24)';
+  shareCtx.lineWidth = 2;
+  shareCtx.stroke();
+
+  shareCtx.save();
+  shareCtx.beginPath();
+  roundedRectPath(shareCtx, board.x, board.y, board.w, board.h, board.r);
+  shareCtx.clip();
+  shareCtx.strokeStyle = 'rgba(0,234,255,.10)';
+  shareCtx.lineWidth = 1;
+  for (let x = board.x + 30; x < board.x + board.w; x += 48) {
+    shareCtx.beginPath();
+    shareCtx.moveTo(x, board.y);
+    shareCtx.lineTo(x, board.y + board.h);
+    shareCtx.stroke();
+  }
+  for (let y = board.y + 28; y < board.y + board.h; y += 48) {
+    shareCtx.beginPath();
+    shareCtx.moveTo(board.x, y);
+    shareCtx.lineTo(board.x + board.w, y);
+    shareCtx.stroke();
+  }
+  shareCtx.restore();
+
+  const cell = 56;
+  const snake = [
+    [292, 1258, shareRun.skinTail],
+    [350, 1258, shareRun.skinBody],
+    [408, 1258, shareRun.skinBody],
+    [466, 1258, shareRun.skinHead],
+    [466, 1316, shareRun.skinHead],
+  ];
+
+  shareCtx.shadowColor = shareRun.skinGlow;
+  shareCtx.shadowBlur = 28;
+  snake.forEach(([x, y, color]) => {
+    roundedRectPath(shareCtx, x, y, cell, cell, 10);
+    shareCtx.fillStyle = color;
+    shareCtx.fill();
+  });
+  shareCtx.shadowBlur = 0;
+
+  shareCtx.fillStyle = '#04101a';
+  shareCtx.beginPath();
+  shareCtx.arc(505, 1281, 5, 0, Math.PI * 2);
+  shareCtx.arc(505, 1311, 5, 0, Math.PI * 2);
+  shareCtx.fill();
+
+  shareCtx.shadowColor = shareRun.foodColor;
+  shareCtx.shadowBlur = 26;
+  shareCtx.fillStyle = shareRun.foodColor;
+  roundedRectPath(shareCtx, 664, 1260, 50, 50, 12);
+  shareCtx.fill();
+  shareCtx.shadowBlur = 0;
+
+  shareCtx.fillStyle = 'rgba(180,220,255,.42)';
+  shareCtx.font = '700 18px Orbitron, sans-serif';
+  drawTrackingText(shareCtx, `${shareRun.skinName.toUpperCase()} SKIN`, 540, 1400, 2.6, 'center');
+}
+
+function drawShareFooter(shareCtx, shareRun) {
+  shareCtx.fillStyle = '#00ff88';
+  shareCtx.font = '900 34px Orbitron, sans-serif';
+  shareCtx.shadowColor = 'rgba(0,255,136,.55)';
+  shareCtx.shadowBlur = 14;
+  drawTrackingText(shareCtx, 'CAN YOU BEAT THIS RUN?', 540, 1535, 3.2, 'center');
+  shareCtx.shadowBlur = 0;
+
+  drawPill(shareCtx, 172, 1596, 596, 74, 'rgba(0,234,255,.075)', 'rgba(0,234,255,.24)');
+  shareCtx.fillStyle = '#d9f4ff';
+  shareCtx.font = '600 29px Rajdhani, sans-serif';
+  shareCtx.textAlign = 'center';
+  shareCtx.fillText(SHARE_CARD.urlLabel, 470, 1643);
+
+  drawPseudoQr(shareCtx, 792, 1576, 122, shareRun.modeAccent);
+
+  shareCtx.fillStyle = 'rgba(180,220,255,.34)';
+  shareCtx.font = '500 22px Rajdhani, sans-serif';
+  shareCtx.textAlign = 'center';
+  shareCtx.fillText(`${shareRun.outcome} | ${shareRun.modeTag}`, 540, 1738);
+}
+
+function drawShareGlow(shareCtx, x, y, radius, rgb, opacity) {
+  const gradient = shareCtx.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, `rgba(${rgb},${opacity})`);
+  gradient.addColorStop(1, `rgba(${rgb},0)`);
+  shareCtx.fillStyle = gradient;
+  shareCtx.beginPath();
+  shareCtx.arc(x, y, radius, 0, Math.PI * 2);
+  shareCtx.fill();
+}
+
+function drawPill(shareCtx, x, y, width, height, fill, stroke) {
+  roundedRectPath(shareCtx, x, y, width, height, height / 2);
+  shareCtx.fillStyle = fill;
+  shareCtx.fill();
+  shareCtx.strokeStyle = stroke;
+  shareCtx.lineWidth = 2;
+  shareCtx.stroke();
+}
+
+function drawPseudoQr(shareCtx, x, y, size, accent) {
+  roundedRectPath(shareCtx, x, y, size, size, 18);
+  shareCtx.fillStyle = 'rgba(0,8,22,.72)';
+  shareCtx.fill();
+  shareCtx.strokeStyle = 'rgba(180,220,255,.16)';
+  shareCtx.stroke();
+
+  const cells = 7;
+  const gap = 4;
+  const cell = (size - 28 - gap * (cells - 1)) / cells;
+  const active = new Set([0, 1, 2, 4, 6, 8, 10, 13, 14, 17, 20, 22, 24, 25, 28, 31, 34, 36, 38, 39, 41, 44, 46, 47, 48]);
+  for (let i = 0; i < cells * cells; i++) {
+    if (!active.has(i)) continue;
+    const col = i % cells;
+    const row = Math.floor(i / cells);
+    roundedRectPath(shareCtx, x + 14 + col * (cell + gap), y + 14 + row * (cell + gap), cell, cell, 3);
+    shareCtx.fillStyle = i % 3 === 0 ? accent : '#00eaff';
+    shareCtx.globalAlpha = i % 5 === 0 ? .55 : .90;
+    shareCtx.fill();
+  }
+  shareCtx.globalAlpha = 1;
+}
+
+function roundedRectPath(shareCtx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  shareCtx.beginPath();
+  shareCtx.moveTo(x + r, y);
+  shareCtx.lineTo(x + width - r, y);
+  shareCtx.quadraticCurveTo(x + width, y, x + width, y + r);
+  shareCtx.lineTo(x + width, y + height - r);
+  shareCtx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  shareCtx.lineTo(x + r, y + height);
+  shareCtx.quadraticCurveTo(x, y + height, x, y + height - r);
+  shareCtx.lineTo(x, y + r);
+  shareCtx.quadraticCurveTo(x, y, x + r, y);
+  shareCtx.closePath();
+}
+
+function drawTrackingText(shareCtx, text, x, y, tracking, align = 'left') {
+  shareCtx.textAlign = 'left';
+  const chars = [...text];
+  const widths = chars.map(char => shareCtx.measureText(char).width);
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + tracking * (chars.length - 1);
+  let cursor = align === 'center' ? x - totalWidth / 2 : x;
+
+  chars.forEach((char, index) => {
+    shareCtx.fillText(char, cursor, y);
+    cursor += widths[index] + tracking;
+  });
+}
+
+function setFittedFont(shareCtx, text, maxWidth, startSize, minSize, weight, family) {
+  let size = startSize;
+  do {
+    shareCtx.font = `${weight} ${size}px ${family}`;
+    if (shareCtx.measureText(text).width <= maxWidth) break;
+    size -= 6;
+  } while (size > minSize);
+}
+
+function colorToRgbString(color) {
+  if (color.startsWith('#')) return hexToRgb(color);
+
+  const match = color.match(/rgba?\(([^)]+)\)/);
+  if (!match) return '0,234,255';
+  return match[1].split(',').slice(0, 3).join(',');
 }
 
 async function copyToClipboard(text) {

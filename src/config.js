@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v0.025';
+export const APP_VERSION = 'v0.026';
 export const GRID = 20;
 export const BASE_MS = 175;
 export const MIN_MS = 52;
