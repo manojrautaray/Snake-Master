@@ -152,11 +152,24 @@ function syncAchievements() {
   return newAchievements;
 }
 
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  const value = Number.parseInt(normalized.length === 3
+    ? normalized.split('').map(char => char + char).join('')
+    : normalized, 16);
+
+  if (Number.isNaN(value)) return '0, 255, 136';
+
+  return `${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}`;
+}
+
 function updateModeUI() {
   const isTimedMode = Boolean(state.currentMode.timerSeconds);
   EL.hSpeedLabel.textContent = isTimedMode ? 'Time' : 'Speed';
   EL.goBestHeader.textContent = `${state.currentMode.name} Bests`;
   EL.startBtn.textContent = `START ${state.currentMode.name.toUpperCase()}`;
+  EL.startBtn.style.setProperty('--start-accent', state.currentMode.accent);
+  EL.startBtn.style.setProperty('--start-accent-rgb', hexToRgb(state.currentMode.accent));
   if (activeHomePanel === 'stats') {
     EL.homeModalTitle.textContent = `${state.currentMode.name} Stats`;
   }
@@ -562,6 +575,10 @@ function updateHomeActionMeta() {
   const unlockedCount = ACHIEVEMENTS.filter(achievement => unlocked[achievement.id]).length;
 
   EL.homeSkinsMeta.textContent = `${state.currentSkin.name} active`;
+  EL.homeSkinsBtn.style.setProperty('--skin-head', state.currentSkin.head);
+  EL.homeSkinsBtn.style.setProperty('--skin-body', state.currentSkin.body);
+  EL.homeSkinsBtn.style.setProperty('--skin-tail', state.currentSkin.tail);
+  EL.homeSkinsBtn.style.setProperty('--skin-glow', state.currentSkin.glow);
   EL.homeStatsMeta.textContent = `${formatCompactInt(modeStats.gamesPlayed)} ${modeStats.gamesPlayed === 1 ? 'run' : 'runs'}`;
   EL.homeAchievementsMeta.textContent = `${unlockedCount}/${ACHIEVEMENTS.length} unlocked`;
   EL.homeSettingsMeta.textContent = `${controlMode === 'keys' ? 'Keypad' : 'Swipe'} controls`;

@@ -1,173 +1,191 @@
-# 🐍 Snake Master — Neon Edition
+# Snake Master — Neon Edition
 
-A polished, feature-rich Snake game built entirely in vanilla HTML, CSS, and JavaScript. No frameworks. No libraries. Modular static files you can host on GitHub Pages or open locally for quick play.
+Fast, glassy, and unapologetically arcade. **Snake Master** is a polished browser Snake game built with vanilla HTML, CSS, and JavaScript, then shaped into a mobile-friendly installable PWA.
 
----
+[Play on GitHub Pages](https://manojrautaray.github.io/Snake-Master/)
 
-## 🎮 Play It
-
-Open `index.html` in any modern browser, or host the folder as a static site. No build step, no package install, no dependencies.
-
-```bash
-git clone https://github.com/your-username/snake-master.git
-cd snake-master
-open index.html   # macOS
-# or double-click index.html on Windows/Linux
-```
+Current release: `v0.020`
 
 ---
 
-## ✨ Features
+## Why This Game Exists
 
-### Core Gameplay
-- Classic Snake movement on a **20×20 grid**
-- **Wrapping walls** — the snake passes through edges and appears on the opposite side, no instant death
-- Self-collision ends the game
-- 3 → 2 → 1 → GO! **countdown** before every game starts
+Snake is simple, but it does not have to feel small. This version keeps the core loop pure: move fast, eat food, grow longer, survive longer. Around that loop it adds modern game feel: neon visuals, generated audio, mobile controls, achievements, stats, skins, modes, haptics, and an app-like home screen.
 
-### Scoring & Progression
-| System | How it works |
+No framework. No build step. No backend. Just a static game that can live comfortably on GitHub Pages.
+
+---
+
+## Highlights
+
+| Area | What You Get |
 |---|---|
-| **Score** | +10 points per food eaten, multiplied by current multiplier |
-| **Multiplier** | Increases every 5 segments grown (+1× per tier) |
-| **Speed** | 10 levels — scales smoothly from slow start to fast maximum as the snake grows |
-| **Distance** | Accumulates in km continuously while alive, independent of score |
+| Modes | Classic, Time Attack, and Hardcore |
+| Progression | Persistent stats, bests, skins, and 100 achievements |
+| Mobile | Swipe controls or a large on-screen keypad |
+| PWA | Add to Home Screen support, icon set, safe-area handling, service worker cache |
+| Audio | Web Audio API music and effects generated at runtime |
+| Visuals | Neon glass UI, animated grid, particles, glow, screen shake |
+| Architecture | Modular browser-side JS with no dependencies |
 
-### HUD (always visible)
-Left to right: **Score · Multiplier · Distance · Speed · Best Score · Best km**
+---
 
-### Skin System
-6 unlockable skins, each with a distinct solid colour and glow:
+## Game Modes
 
-| Skin | Unlock Condition |
+| Mode | Personality | Rules |
+|---|---|---|
+| Classic | Pure arcade flow | Wrap walls, standard score, steady growth |
+| Time Attack | Fast sprint | 60-second timer with boosted score payouts |
+| Hardcore | No mercy | Solid walls, faster start, higher reward |
+
+The home screen presents modes as a cyber card carousel with arrows and swipe support. The Start button inherits the selected mode color so the current choice always feels obvious.
+
+---
+
+## Progression Systems
+
+### Skins
+
+Unlock and equip neon snake skins through score and distance milestones.
+
+| Skin | Unlock |
 |---|---|
-| 🔵 Cyber | Default — always available |
-| 🟢 Venom | Score 500 |
-| 🔴 Plasma | Score 1 500 |
-| 🟡 Gold Rush | Travel 1.5 km |
-| 🟣 Shadow | Score 3 000 |
-| 🟠 Inferno | Travel 5 km |
+| Cyber | Default |
+| Venom | Score 500 |
+| Plasma | Score 1500 |
+| Gold Rush | Travel 1.5 km |
+| Shadow | Score 3000 |
+| Inferno | Travel 5 km |
 
-Selected skin is saved to `localStorage` and persists across sessions.
+The home screen shows the active skin at a glance, including a mini color rail inside the Skins tile.
 
-### Game Over Screen
-- **This Run** — large prominent score, distance, and max multiplier
-- **Personal Bests** — quieter panel below showing best score and best distance
-- New records flash with a brightness animation
-- **Play Again** or **Home** buttons
+### Achievements
 
-### Audio
-All audio generated live via the **Web Audio API** — no audio files needed:
-- 🎵 **BGM** — ambient pentatonic arp sequencer with soft kick, hi-hat, bass drone, and atmospheric pad. Tempo scales from ~90 BPM (slow) to ~160 BPM (max speed) in real time
-- 🔊 **Eat SFX** — layered sine tone chord
-- 💥 **Game Over SFX** — descending triangle wave sequence
-- ⏱ **Countdown ticks** — distinct tones for numbers and GO!
+The game includes **100 stat-driven achievements** across food, distance, mode play, multipliers, best scores, and lifetime progress. Achievements are presented as premium badge cards with progress bars and unlock visuals.
 
-### Visuals
-- Neon glassmorphism UI with animated scrolling grid background
-- Square snake tiles with a subtle top-left highlight edge
-- Square food tiles with a pulsing radial gradient and glow
-- Particle burst effect on food eaten (pooled — zero GC pressure)
-- Animated snake head (subtle vertical bob) with directional eyes
-- Screen shake + haptic vibration on game over
+### Stats
+
+Runs, food, distance, score, time, and best multiplier are saved locally and split across lifetime totals and mode-specific records.
 
 ---
 
-## 🕹 Controls
+## Controls
 
-| Platform | Control |
+| Platform | Controls |
 |---|---|
-| Desktop | Arrow keys `↑ ↓ ← →` |
-| Desktop | `Space` to start |
-| Mobile | Swipe in any direction or use the on-screen keypad |
-| Mobile | Tap START GAME button |
+| Desktop | Arrow keys to steer, Space to start |
+| Mobile Swipe | Swipe on the board or bottom control deck |
+| Mobile Keys | Large thumb-friendly on-screen keypad |
+| Home Mode Select | Tap arrows, swipe the mode card, or tap a mode card |
+
+Mobile control preference is saved in `localStorage`.
 
 ---
 
-## 🏗 Technical Details
+## App-Like Mobile Experience
 
-**Modular static app** — HTML, CSS, and browser modules are split by responsibility:
+Snake Master is set up as a Progressive Web App:
 
-```
-index.html
-├── styles.css
-├── manifest.webmanifest
-├── service-worker.js
-├── icons/
-└── src/
-    ├── core/
-    ├── data/
-    ├── render/
-    ├── systems/
-    └── ui/
-```
+- Installable with **Add to Home Screen**
+- Safe-area spacing for iPhone notch and home indicator
+- SVG and PNG app icons
+- Service worker cache for core static assets
+- Version pill on the home screen to confirm deployed releases
+- Haptic feedback where supported by the browser
 
-### Performance choices
-- **Offscreen canvas** for the grid — drawn once, reused every frame via `drawImage()`
-- **`Set`-based collision** — O(1) snake body lookup instead of O(n) array scan
-- **Pre-allocated particle pool** — 80 fixed objects, zero heap allocation during gameplay
-- **rAF timing** — single `requestAnimationFrame` loop drives both rendering and game ticks; tick interval accumulates cleanly to avoid drift
-- **HUD dirty-checking** — DOM text nodes only update when values actually change
-
-### Storage
-Uses `localStorage` for scores, distances, selected skin, selected mode, mobile control preference, stats, and achievement unlocks.
+Note: iOS Safari may ignore `navigator.vibrate`, but Android Chromium browsers generally support it.
 
 ---
 
-## 📁 File Structure
+## Under The Hood
 
-```
-snake-master/
+The project is intentionally small and readable.
+
+```text
+Snake-Master/
 ├── index.html
 ├── styles.css
 ├── manifest.webmanifest
 ├── service-worker.js
 ├── icons/
-├── src/
-└── README.md
+└── src/
+    ├── config.js
+    ├── main.js
+    ├── core/
+    ├── data/
+    ├── render/
+    ├── systems/
+    ├── ui/
+    └── utils/
 ```
+
+### Performance Choices
+
+- Canvas rendering for the board and snake
+- Cached grid canvas so the background grid is not redrawn from scratch every frame
+- `Set`-based snake collision lookup
+- Preallocated particle pool to reduce runtime allocation
+- Dirty-checking for HUD text updates
+- `requestAnimationFrame` loop with tick accumulation for stable movement
 
 ---
 
-## 🌐 Browser Support
+## Local Play
 
-Works in all modern browsers that support:
-- Canvas 2D API
+Clone the repo and open `index.html`.
+
+```bash
+git clone https://github.com/manojrautaray/Snake-Master.git
+cd Snake-Master
+open index.html
+```
+
+For the service worker/PWA flow, serve it from a local static server or GitHub Pages.
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000`.
+
+---
+
+## Deployment
+
+The game is a static site and is already shaped for GitHub Pages.
+
+```bash
+git push origin main
+```
+
+GitHub Pages can serve it directly from the repository root. Each release is tracked with lightweight git tags like `v0.018`, `v0.019`, `v0.020`.
+
+---
+
+## Browser Support
+
+Snake Master targets modern browsers with support for:
+
+- Canvas 2D
+- ES modules
 - Web Audio API
-- CSS `backdrop-filter`
 - `localStorage`
-- Service workers for install/offline support
-
-| Browser | Status |
-|---|---|
-| Chrome 90+ | ✅ |
-| Firefox 90+ | ✅ |
-| Safari 15+ | ✅ |
-| Edge 90+ | ✅ |
-| Mobile Chrome | ✅ |
-| Mobile Safari | ✅ |
+- Service workers
+- CSS backdrop filters and safe-area insets
 
 ---
 
-## 🚀 Deployment
+## Roadmap Ideas
 
-Since it is a static app, you can host it anywhere:
-
-**GitHub Pages**
-```bash
-# Push to your repo, then enable GitHub Pages in Settings → Pages.
-# The app can be served directly from the repository root.
-```
-
-**Netlify / Vercel**
-```bash
-# Deploy the full project folder as a static site
-```
-
-**Any static host** — the app has zero build-time dependencies. Google Fonts gracefully degrade if offline.
+- Daily Challenge mode
+- Share Score button
+- More skins and visual themes
+- Better post-run summary cards
+- Optional power-up experiments
+- Leaderboard backend if the project grows beyond local play
 
 ---
 
-## 📄 License
+## License
 
-MIT — do whatever you like with it.
+MIT. Play with it, fork it, remix it, or use it as a learning project.

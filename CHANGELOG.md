@@ -119,3 +119,10 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Reserved side gutters so mode navigation arrows no longer overlap the mode card
 - Made the selected mode card taller while preserving the rectangular mockup style
 - Added more vertical breathing room between the mode stack, Start button, and option tiles
+
+## v0.020
+
+- Normalized mode card sizing so all modes use the same fixed card layout
+- Made the Start button taller and themed it with the selected mode color
+- Added an active-skin color rail to the Skins home tile
+- Replaced the README with a richer, up-to-date project overview
