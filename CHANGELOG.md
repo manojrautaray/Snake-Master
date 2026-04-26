@@ -113,3 +113,9 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added left/right arrow controls and swipe navigation for the home mode selector
 - Kept the selected mode card large and rectangular for easier reading and tapping
 - Reordered the home screen hierarchy to show modes, then Start, then secondary options
+
+## v0.019
+
+- Reserved side gutters so mode navigation arrows no longer overlap the mode card
+- Made the selected mode card taller while preserving the rectangular mockup style
+- Added more vertical breathing room between the mode stack, Start button, and option tiles

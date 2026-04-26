@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-master-v0.018';
+const CACHE_NAME = 'snake-master-v0.019';
 
 const CORE_ASSETS = [
   './',
