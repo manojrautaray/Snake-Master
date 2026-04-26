@@ -59,15 +59,21 @@
     <div class="overlay" id="start-overlay">
       <div class="game-title">SNAKE MASTER</div>
       <div class="subtitle">Neon Edition</div>
-      <div class="version-pill" id="app-version">v0.017</div>
+      <div class="version-pill" id="app-version">v0.018</div>
 
       <div class="mode-stack-panel">
         <div class="mode-stack-head">
           <div class="panel-title">Choose Mode</div>
-          <div class="mode-stack-hint">Tap a card</div>
+          <div class="mode-stack-hint">Swipe or arrows</div>
         </div>
-        <div class="modes-grid mode-stack" id="modes-grid"></div>
+        <div class="mode-stage">
+          <button class="mode-nav mode-prev" id="mode-prev-btn" type="button" aria-label="Previous mode">&#8249;</button>
+          <div class="modes-grid mode-stack" id="modes-grid"></div>
+          <button class="mode-nav mode-next" id="mode-next-btn" type="button" aria-label="Next mode">&#8250;</button>
+        </div>
       </div>
+
+      <button class="btn btn-green start-cta" id="start-btn">▶ &nbsp;START GAME</button>
 
       <div class="home-actions" aria-label="Home panels">
         <button class="home-action" id="home-skins-btn" type="button">
@@ -96,8 +102,6 @@
           <span class="home-action-meta" id="home-settings-meta">Swipe controls</span>
         </button>
       </div>
-
-      <button class="btn btn-green" id="start-btn">▶ &nbsp;START GAME</button>
     </div>
 
     <!-- Countdown -->

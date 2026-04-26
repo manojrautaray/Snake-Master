@@ -72,6 +72,9 @@ const HAPTICS = {
 
 let activeHomePanel = null;
 let controlMode = LS.getControlMode();
+let modeSwipeX0 = null;
+let modeSwipeY0 = null;
+let suppressModeCardClick = false;
 
 function resize() {
   const hudHeight = EL.hud.getBoundingClientRect().height || 38;
@@ -161,6 +164,8 @@ function updateModeUI() {
 
 function setMode(modeId) {
   const nextMode = MODES.find(mode => mode.id === modeId) || MODES[0];
+  if (nextMode.id === state.currentMode.id) return;
+
   state.currentMode = nextMode;
   LS.setMode(nextMode.id);
   updateModeUI();
@@ -168,6 +173,13 @@ function setMode(modeId) {
   renderStatsPanel();
   resetGame();
   updateHomeActionMeta();
+}
+
+function shiftMode(offset) {
+  const currentIndex = Math.max(0, MODES.findIndex(mode => mode.id === state.currentMode.id));
+  const nextIndex = (currentIndex + offset + MODES.length) % MODES.length;
+  setMode(MODES[nextIndex].id);
+  vibrate(HAPTICS.input);
 }
 
 function spawnParticles(gx, gy, color) {
@@ -608,7 +620,13 @@ function renderModesPanel() {
 
     meta.append(chipOne, chipTwo, chipThree);
     card.append(eyebrow, top, desc, meta);
-    card.addEventListener('click', () => setMode(mode.id));
+    card.addEventListener('click', event => {
+      if (suppressModeCardClick) {
+        event.preventDefault();
+        return;
+      }
+      setMode(mode.id);
+    });
     EL.modesGrid.appendChild(card);
   });
 
@@ -621,6 +639,37 @@ function renderModesPanel() {
     dots.appendChild(dot);
   });
   EL.modesGrid.appendChild(dots);
+}
+
+function onModeStackPointerDown(event) {
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+  modeSwipeX0 = event.clientX;
+  modeSwipeY0 = event.clientY;
+  EL.modesGrid.setPointerCapture?.(event.pointerId);
+}
+
+function onModeStackPointerUp(event) {
+  if (modeSwipeX0 == null || modeSwipeY0 == null) return;
+
+  const dx = event.clientX - modeSwipeX0;
+  const dy = event.clientY - modeSwipeY0;
+  modeSwipeX0 = null;
+  modeSwipeY0 = null;
+
+  if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+
+  event.preventDefault();
+  suppressModeCardClick = true;
+  shiftMode(dx < 0 ? 1 : -1);
+  setTimeout(() => {
+    suppressModeCardClick = false;
+  }, 0);
+}
+
+function onModeStackPointerCancel() {
+  modeSwipeX0 = null;
+  modeSwipeY0 = null;
 }
 
 function renderRunAchievements(newAchievements) {
@@ -926,8 +975,13 @@ function init() {
   EL.mobileControls.addEventListener('pointerdown', onSwipePadPointerDown);
   EL.mobileControls.addEventListener('pointerup', onSwipePadPointerUp);
   EL.mobileControls.addEventListener('pointercancel', onSwipePadPointerCancel);
+  EL.modesGrid.addEventListener('pointerdown', onModeStackPointerDown);
+  EL.modesGrid.addEventListener('pointerup', onModeStackPointerUp);
+  EL.modesGrid.addEventListener('pointercancel', onModeStackPointerCancel);
 
   EL.startBtn.addEventListener('click', startWithCountdown);
+  EL.modePrevBtn.addEventListener('click', () => shiftMode(-1));
+  EL.modeNextBtn.addEventListener('click', () => shiftMode(1));
   EL.homeHowBtn.addEventListener('click', () => showHomePanel('how'));
   EL.homeSkinsBtn.addEventListener('click', () => showHomePanel('skins'));
   EL.homeStatsBtn.addEventListener('click', () => showHomePanel('stats'));

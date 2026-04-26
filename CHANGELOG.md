@@ -107,3 +107,9 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Reworked the home screen around a Cyber Card Stack mode selector
 - Moved Skins into a popup and added it to the Mission Control-style home tiles
 - Added richer home action tile metadata for skins, achievements, stats, and controls
+
+## v0.018
+
+- Added left/right arrow controls and swipe navigation for the home mode selector
+- Kept the selected mode card large and rectangular for easier reading and tapping
+- Reordered the home screen hierarchy to show modes, then Start, then secondary options
