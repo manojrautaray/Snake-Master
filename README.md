@@ -84,12 +84,12 @@ The selected mode also themes the Start button, so the home screen always makes 
   <tr>
     <td width="50%">
       <h3>Skins</h3>
-      <p><strong>Cyber</strong> default</p>
-      <p><strong>Venom</strong> score 500</p>
-      <p><strong>Plasma</strong> score 1500</p>
-      <p><strong>Gold Rush</strong> 1.5 km distance</p>
-      <p><strong>Shadow</strong> score 3000</p>
-      <p><strong>Inferno</strong> 5 km distance</p>
+      <p><strong>Cyber</strong> - default</p>
+      <p><strong>Venom</strong> - score 500</p>
+      <p><strong>Plasma</strong> - score 1500</p>
+      <p><strong>Gold Rush</strong> - 1.5 km distance</p>
+      <p><strong>Shadow</strong> - score 3000</p>
+      <p><strong>Inferno</strong> - 5 km distance</p>
     </td>
     <td width="50%">
       <h3>Achievements</h3>
