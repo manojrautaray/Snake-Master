@@ -18,6 +18,8 @@ export function createGameState() {
     gameStarted: false,
     currentSkin: null,
     currentMode: null,
+    dailyChallenge: null,
+    random: Math.random,
     modeTimeLeft: 0,
     modeTimeTotal: 0,
     lastFrameTime: 0,
@@ -89,11 +91,14 @@ export function calcMultiplier(length, mode) {
 
 export function resetGameState(state) {
   const mode = state.currentMode;
-  const mid = GRID >> 1;
-  state.snake = [{ x: mid, y: mid }, { x: mid - 1, y: mid }, { x: mid - 2, y: mid }];
+  const spawn = mode?.seeded
+    ? createSeededSpawn(state.random || Math.random)
+    : createDefaultSpawn();
+
+  state.snake = spawn.snake;
   state.snakeSet = new Set(state.snake.map(segment => keyFor(segment.x, segment.y)));
-  state.dir = { x: 1, y: 0 };
-  state.nextDir = { x: 1, y: 0 };
+  state.dir = spawn.dir;
+  state.nextDir = spawn.dir;
   state.score = 0;
   state.distance = 0;
   state.multiplier = 1;
@@ -115,11 +120,64 @@ export function resetGameState(state) {
 
 export function placeFood(state) {
   let point;
+  let attempts = 0;
+  const random = state.random || Math.random;
+
   do {
-    point = { x: (Math.random() * GRID) | 0, y: (Math.random() * GRID) | 0 };
-  } while (state.snakeSet.has(keyFor(point.x, point.y)));
+    point = { x: (random() * GRID) | 0, y: (random() * GRID) | 0 };
+    attempts += 1;
+  } while (state.snakeSet.has(keyFor(point.x, point.y)) && attempts < GRID * GRID * 2);
+
+  if (state.snakeSet.has(keyFor(point.x, point.y))) {
+    point = findFirstOpenCell(state);
+  }
 
   state.food = point;
+}
+
+function createDefaultSpawn() {
+  const mid = GRID >> 1;
+  return {
+    snake: [{ x: mid, y: mid }, { x: mid - 1, y: mid }, { x: mid - 2, y: mid }],
+    dir: { x: 1, y: 0 },
+  };
+}
+
+function createSeededSpawn(random) {
+  const directions = [
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: -1, y: 0 },
+    { x: 0, y: -1 },
+  ];
+  const dir = directions[(random() * directions.length) | 0] || directions[0];
+  const min = 4;
+  const max = GRID - 5;
+  const head = {
+    x: min + ((random() * (max - min + 1)) | 0),
+    y: min + ((random() * (max - min + 1)) | 0),
+  };
+
+  return {
+    snake: [
+      head,
+      { x: head.x - dir.x, y: head.y - dir.y },
+      { x: head.x - dir.x * 2, y: head.y - dir.y * 2 },
+    ],
+    dir,
+  };
+}
+
+function findFirstOpenCell(state) {
+  for (let y = 0; y < GRID; y += 1) {
+    for (let x = 0; x < GRID; x += 1) {
+      if (!state.snakeSet.has(keyFor(x, y))) {
+        return { x, y };
+      }
+    }
+  }
+
+  return { x: 0, y: 0 };
 }
 
 function getModeBaseTick(mode) {

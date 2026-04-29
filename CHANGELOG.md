@@ -165,3 +165,10 @@ All notable project checkpoints are tracked with git tags using this versioning 
 - Added image-file sharing through the Web Share API where supported
 - Added image clipboard fallback before falling back to text-only sharing
 - Matched the share card layout to the approved visual mockup with score, mode, stats, snake preview, achievements count, and game link
+
+## v0.027
+
+- Added a Daily Challenge mode with a date-seeded start and food sequence
+- Added daily attempts, today-best, streak, and all-time daily best tracking
+- Updated the home mode deck, stats popup, Game Over report, and score sharing for daily challenge runs
+- Bumped the visible app version and service-worker cache for the daily challenge release

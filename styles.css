@@ -346,6 +346,13 @@ body::after {
   pointer-events: none;
   transform: translate(-8px, -40px) scale(.90) rotate(-1.5deg);
 }
+.mode-card.stack-3 {
+  z-index: 0;
+  opacity: .26;
+  filter: saturate(.74);
+  pointer-events: none;
+  transform: translate(12px, -54px) scale(.86) rotate(2deg);
+}
 .mode-card:hover {
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
@@ -400,6 +407,10 @@ body::after {
   border: 1px solid rgba(180,220,255,0.10);
   flex-shrink: 0;
   margin-top: 3px;
+  max-width: 46%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mode-desc {
   position: relative;

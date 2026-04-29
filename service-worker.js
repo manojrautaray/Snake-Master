@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-master-v0.026';
+const CACHE_NAME = 'snake-master-v0.027';
 
 const CORE_ASSETS = [
   './',
@@ -13,6 +13,7 @@ const CORE_ASSETS = [
   './src/main.js',
   './src/core/game-state.js',
   './src/data/achievements.js',
+  './src/data/daily-challenge.js',
   './src/data/modes.js',
   './src/data/skins.js',
   './src/render/game-renderer.js',

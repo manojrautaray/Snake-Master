@@ -10,6 +10,7 @@ import {
   resetHudCache,
 } from './core/game-state.js';
 import { ACHIEVEMENTS } from './data/achievements.js';
+import { createSeededRandom, getDailyChallenge, isDailyMode } from './data/daily-challenge.js';
 import { MODES } from './data/modes.js';
 import { SKINS } from './data/skins.js';
 import { buildGridCache, drawScene } from './render/game-renderer.js';
@@ -123,6 +124,7 @@ function vibrate(pattern) {
 }
 
 function resetGame() {
+  prepareRunRandomness();
   resetGameState(state);
   placeFood(state);
   resetHudCache(state.hudCache);
@@ -130,11 +132,37 @@ function resetGame() {
 }
 
 function getModeBestScore() {
+  if (isDailyMode(state.currentMode)) {
+    return getCurrentDailySummary().bestScore;
+  }
+
   return LS.getBest(state.currentMode.id);
 }
 
 function getModeBestDistance() {
+  if (isDailyMode(state.currentMode)) {
+    return getCurrentDailySummary().bestDistance;
+  }
+
   return LS.getBestDist(state.currentMode.id);
+}
+
+function prepareRunRandomness() {
+  const challenge = getCurrentDailyChallenge();
+  state.dailyChallenge = challenge;
+  state.random = challenge ? createSeededRandom(challenge.seed) : Math.random;
+}
+
+function getCurrentDailyChallenge() {
+  return isDailyMode(state.currentMode) ? getDailyChallenge() : null;
+}
+
+function getCurrentDailySummary(challenge = state.dailyChallenge || getCurrentDailyChallenge()) {
+  if (!challenge) {
+    return LS.getDailySummary('');
+  }
+
+  return LS.getDailySummary(challenge.dateKey);
 }
 
 function getStatsSnapshot() {
@@ -175,8 +203,9 @@ function hexToRgb(hex) {
 
 function updateModeUI() {
   const isTimedMode = Boolean(state.currentMode.timerSeconds);
+  const modeDisplay = getModeDisplay(state.currentMode);
   EL.hSpeedLabel.textContent = isTimedMode ? 'Time' : 'Speed';
-  EL.goBestHeader.textContent = `${state.currentMode.name} Bests`;
+  EL.goBestHeader.textContent = modeDisplay.bestHeader;
   EL.startBtn.textContent = `START ${state.currentMode.name.toUpperCase()}`;
   EL.startBtn.style.setProperty('--start-accent', state.currentMode.accent);
   EL.startBtn.style.setProperty('--start-accent-rgb', hexToRgb(state.currentMode.accent));
@@ -341,15 +370,15 @@ function updateHUD() {
 
 function persistRecords() {
   const modeId = state.currentMode.id;
-  const bestScore = getModeBestScore();
-  const bestDistance = getModeBestDistance();
+  const modeRecordScore = LS.getBest(modeId);
+  const modeRecordDistance = LS.getBestDist(modeId);
   const globalBest = LS.getBest();
   const globalBestDistance = LS.getBestDist();
 
-  if (state.score > bestScore) {
+  if (state.score > modeRecordScore) {
     LS.setBest(state.score, modeId);
   }
-  if (state.distance > bestDistance) {
+  if (state.distance > modeRecordDistance) {
     LS.setBestDist(+state.distance.toFixed(3), modeId);
   }
   if (state.score > globalBest) {
@@ -366,15 +395,24 @@ function persistRecords() {
     durationSeconds: getRunDurationSeconds(),
     foodEaten: state.foodEaten,
     maxMultiplier: state.maxMultiplier,
+    dailyChallenge: state.dailyChallenge ? { ...state.dailyChallenge } : null,
   };
   const stats = LS.recordRun(run);
+  const dailySummary = run.dailyChallenge
+    ? LS.recordDailyRun({
+      dateKey: run.dailyChallenge.dateKey,
+      score: run.score,
+      distance: run.distance,
+      durationSeconds: run.durationSeconds,
+    })
+    : null;
   const unlocked = LS.getAchievements();
   const newAchievements = evaluateAchievements(ACHIEVEMENTS, getAchievementContext(run, stats), unlocked);
 
   LS.unlockAchievements(newAchievements);
   LS.addPendingAchievementCount(newAchievements.length);
 
-  return { stats, newAchievements, run };
+  return { stats, newAchievements, run, dailySummary };
 }
 
 function endGame() {
@@ -407,12 +445,14 @@ function endGame() {
 function renderRunReport(progression, isNewScore, isNewDist) {
   const run = progression.run;
   const accent = state.currentMode.accent;
+  const modeDisplay = getModeDisplay(state.currentMode, run.dailyChallenge);
 
   EL.goOv.style.setProperty('--report-accent', accent);
   EL.goOv.style.setProperty('--report-accent-rgb', hexToRgb(accent));
   EL.goModeLabel.textContent = state.currentMode.name;
   EL.goOutcome.textContent = getGameOverOutcome();
-  EL.goModeChip.textContent = state.currentMode.tag;
+  EL.goModeChip.textContent = modeDisplay.tag;
+  EL.goBestHeader.textContent = modeDisplay.bestHeader;
   EL.goScore.textContent = run.score;
   EL.goDist.textContent = `${run.distance.toFixed(2)} km`;
   EL.goMult.textContent = `${run.maxMultiplier}x`;
@@ -452,6 +492,7 @@ function getGameOverOutcome() {
 }
 
 function buildShareRun(run, achievementCount) {
+  const modeDisplay = getModeDisplay(state.currentMode, run.dailyChallenge);
   const paceLabel = state.currentMode.timerSeconds ? 'Clock' : 'Speed';
   const paceValue = state.currentMode.timerSeconds
     ? `${Math.ceil(Math.max(0, state.modeTimeLeft))}s`
@@ -467,8 +508,10 @@ function buildShareRun(run, achievementCount) {
     achievementCount,
     outcome: getGameOverOutcome(),
     modeName: state.currentMode.name,
-    modeTag: state.currentMode.tag,
+    modeTag: modeDisplay.tag,
     modeAccent: state.currentMode.accent,
+    challengeLabel: run.dailyChallenge?.label || '',
+    challengeDate: run.dailyChallenge?.dateKey || '',
     skinName: state.currentSkin.name,
     skinHead: state.currentSkin.head,
     skinBody: state.currentSkin.body,
@@ -478,7 +521,7 @@ function buildShareRun(run, achievementCount) {
     paceLabel,
     paceValue,
     text: [
-      `I scored ${formatCompactInt(run.score)} in Snake Master ${state.currentMode.name}.`,
+      `I scored ${formatCompactInt(run.score)} in Snake Master ${run.dailyChallenge?.label || state.currentMode.name}.`,
       `Distance: ${run.distance.toFixed(2)} km | Food: ${run.foodEaten} | Multi: ${run.maxMultiplier}x`,
       `Skin: ${state.currentSkin.name}`,
     ].join('\n'),
@@ -694,10 +737,17 @@ function drawShareHeader(shareCtx, shareRun) {
   drawTrackingText(shareCtx, 'GAME OVER', 540, 430, 7, 'center');
   shareCtx.shadowBlur = 0;
 
-  drawPill(shareCtx, 382, 475, 316, 64, `rgba(${hexToRgb(shareRun.modeAccent)},.13)`, `rgba(${hexToRgb(shareRun.modeAccent)},.48)`);
+  drawPill(shareCtx, 326, 475, 428, 64, `rgba(${hexToRgb(shareRun.modeAccent)},.13)`, `rgba(${hexToRgb(shareRun.modeAccent)},.48)`);
   shareCtx.fillStyle = shareRun.modeAccent;
-  shareCtx.font = '700 25px Orbitron, sans-serif';
-  drawTrackingText(shareCtx, shareRun.modeName.toUpperCase(), 540, 516, 3, 'center');
+  setFittedFont(shareCtx, shareRun.modeName.toUpperCase(), 340, 25, 17, '700', 'Orbitron, sans-serif');
+  drawTrackingText(shareCtx, shareRun.modeName.toUpperCase(), 540, 516, 2.2, 'center');
+
+  if (shareRun.challengeLabel) {
+    drawPill(shareCtx, 352, 552, 376, 42, 'rgba(182,255,74,.08)', 'rgba(182,255,74,.30)');
+    shareCtx.fillStyle = '#b6ff4a';
+    shareCtx.font = '700 18px Orbitron, sans-serif';
+    drawTrackingText(shareCtx, shareRun.challengeLabel.toUpperCase(), 540, 579, 1.4, 'center');
+  }
 }
 
 function drawShareScore(shareCtx, shareRun) {
@@ -1141,6 +1191,7 @@ function updateMobileControls() {
 function updateHomeActionMeta() {
   const stats = getStatsSnapshot();
   const modeStats = stats.modes[state.currentMode.id] || { gamesPlayed: 0 };
+  const dailySummary = getCurrentDailySummary();
   const unlocked = LS.getAchievements();
   const unlockedCount = ACHIEVEMENTS.filter(achievement => unlocked[achievement.id]).length;
   const pendingAchievements = LS.getPendingAchievementCount();
@@ -1150,7 +1201,9 @@ function updateHomeActionMeta() {
   EL.homeSkinsBtn.style.setProperty('--skin-body', state.currentSkin.body);
   EL.homeSkinsBtn.style.setProperty('--skin-tail', state.currentSkin.tail);
   EL.homeSkinsBtn.style.setProperty('--skin-glow', state.currentSkin.glow);
-  EL.homeStatsMeta.textContent = `${formatCompactInt(modeStats.gamesPlayed)} ${modeStats.gamesPlayed === 1 ? 'run' : 'runs'}`;
+  EL.homeStatsMeta.textContent = isDailyMode(state.currentMode)
+    ? `${dailySummary.attempts} today • ${dailySummary.streak}d streak`
+    : `${formatCompactInt(modeStats.gamesPlayed)} ${modeStats.gamesPlayed === 1 ? 'run' : 'runs'}`;
   EL.homeAchievementsMeta.textContent = `${unlockedCount}/${ACHIEVEMENTS.length} unlocked`;
   EL.homeAchievementsBadge.textContent = pendingAchievements > 99 ? '99+' : pendingAchievements;
   EL.homeAchievementsBadge.classList.toggle('hidden', pendingAchievements === 0);
@@ -1163,6 +1216,7 @@ function renderModesPanel() {
 
   MODES.forEach((mode, index) => {
     const selected = mode.id === state.currentMode.id;
+    const modeDisplay = getModeDisplay(mode);
     const stackPosition = (index - selectedIndex + MODES.length) % MODES.length;
     const card = document.createElement('button');
     card.className = `mode-card stack-${stackPosition}${selected ? ' selected' : ''}`;
@@ -1184,31 +1238,25 @@ function renderModesPanel() {
 
     const tag = document.createElement('div');
     tag.className = 'mode-tag';
-    tag.textContent = mode.tag;
+    tag.textContent = modeDisplay.tag;
     tag.style.color = mode.accent;
 
     top.append(name, tag);
 
     const desc = document.createElement('div');
     desc.className = 'mode-desc';
-    desc.textContent = mode.description;
+    desc.textContent = modeDisplay.description;
 
     const meta = document.createElement('div');
     meta.className = 'mode-meta';
 
-    const chipOne = document.createElement('div');
-    chipOne.className = 'mode-chip';
-    chipOne.textContent = mode.wrapWalls ? 'Wrap Walls' : 'Solid Walls';
+    getModeChips(mode).forEach(label => {
+      const chip = document.createElement('div');
+      chip.className = 'mode-chip';
+      chip.textContent = label;
+      meta.appendChild(chip);
+    });
 
-    const chipTwo = document.createElement('div');
-    chipTwo.className = 'mode-chip';
-    chipTwo.textContent = mode.timerSeconds ? `${mode.timerSeconds}s Timer` : `${mode.scoreBonus}x Score`;
-
-    const chipThree = document.createElement('div');
-    chipThree.className = 'mode-chip';
-    chipThree.textContent = `${mode.baseTickMs}ms Start`;
-
-    meta.append(chipOne, chipTwo, chipThree);
     card.append(eyebrow, top, desc, meta);
     card.addEventListener('click', event => {
       if (suppressModeCardClick) {
@@ -1229,6 +1277,43 @@ function renderModesPanel() {
     dots.appendChild(dot);
   });
   EL.modesGrid.appendChild(dots);
+}
+
+function getModeDisplay(mode, dailyChallenge = null) {
+  if (!isDailyMode(mode)) {
+    return {
+      tag: mode.tag,
+      description: mode.description,
+      bestHeader: `${mode.name} Bests`,
+    };
+  }
+
+  const challenge = dailyChallenge || getDailyChallenge();
+  const summary = LS.getDailySummary(challenge.dateKey);
+
+  return {
+    tag: 'Today',
+    description: `${challenge.label}. ${summary.completed ? 'Complete' : 'Fresh'} today. Best ${formatCompactInt(summary.bestScore)}.`,
+    bestHeader: 'Today Bests',
+  };
+}
+
+function getModeChips(mode) {
+  if (!isDailyMode(mode)) {
+    return [
+      mode.wrapWalls ? 'Wrap Walls' : 'Solid Walls',
+      mode.timerSeconds ? `${mode.timerSeconds}s Timer` : `${mode.scoreBonus}x Score`,
+      `${mode.baseTickMs}ms Start`,
+    ];
+  }
+
+  const challenge = getDailyChallenge();
+  const summary = LS.getDailySummary(challenge.dateKey);
+
+  return [
+    summary.completed ? 'Complete' : 'Fresh',
+    `${summary.attempts} ${summary.attempts === 1 ? 'Try' : 'Tries'}`,
+  ];
 }
 
 function onModeStackPointerDown(event) {
@@ -1347,7 +1432,7 @@ function renderStatsPanel() {
     lastDuration: 0,
   };
 
-  const cards = [
+  const cards = isDailyMode(state.currentMode) ? getDailyStatCards(lifetime) : [
     { label: 'Runs', value: formatCompactInt(modeStats.gamesPlayed), tone: 'gold' },
     { label: 'Food', value: formatCompactInt(modeStats.foodEaten), tone: 'green' },
     { label: 'Best Multi', value: `${modeStats.bestMultiplier}x`, tone: 'pink' },
@@ -1373,6 +1458,20 @@ function renderStatsPanel() {
     EL.statsGrid.appendChild(panel);
   });
   updateHomeActionMeta();
+}
+
+function getDailyStatCards(lifetime) {
+  const challenge = getCurrentDailyChallenge() || getDailyChallenge();
+  const summary = LS.getDailySummary(challenge.dateKey);
+
+  return [
+    { label: 'Today Best', value: formatCompactInt(summary.bestScore), tone: 'gold' },
+    { label: 'Attempts', value: formatCompactInt(summary.attempts), tone: '' },
+    { label: 'Streak', value: `${summary.streak}d`, tone: 'green' },
+    { label: 'Daily Peak', value: formatCompactInt(summary.allTimeBestScore), tone: 'gold' },
+    { label: 'Today Km', value: `${summary.bestDistance.toFixed(2)} km`, tone: 'green' },
+    { label: 'Lifetime Runs', value: formatCompactInt(lifetime.gamesPlayed), tone: '' },
+  ];
 }
 
 function renderAchievementsPanel() {

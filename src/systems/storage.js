@@ -11,6 +11,8 @@ export const LS = {
   setControlMode: mode => localStorage.setItem('sm_control_mode', mode),
   getStats: () => readStats(),
   recordRun: run => recordRun(run),
+  getDailySummary: dateKey => getDailySummary(dateKey),
+  recordDailyRun: run => recordDailyRun(run),
   getAchievements: () => readAchievements(),
   unlockAchievements: achievements => unlockAchievements(achievements),
   getPendingAchievementCount: () => getPendingAchievementCount(),
@@ -181,4 +183,144 @@ function addPendingAchievementCount(count) {
 function clearPendingAchievementCount() {
   localStorage.removeItem('sm_pending_achievements');
   return 0;
+}
+
+function getDailySummary(dateKey) {
+  const daily = readDaily();
+  const result = {
+    ...createEmptyDailyResult(),
+    ...(daily.results[dateKey] || {}),
+  };
+
+  return {
+    ...result,
+    streak: daily.streak,
+    allTimeBestScore: daily.allTimeBestScore,
+    allTimeBestDistance: daily.allTimeBestDistance,
+    allTimeBestDate: daily.allTimeBestDate,
+    lastPlayedDate: daily.lastPlayedDate,
+  };
+}
+
+function recordDailyRun(run) {
+  const daily = readDaily();
+  const dateKey = run.dateKey;
+  if (!dateKey) {
+    return getDailySummary(dateKey);
+  }
+
+  const result = {
+    ...createEmptyDailyResult(),
+    ...(daily.results[dateKey] || {}),
+  };
+
+  if (daily.lastPlayedDate !== dateKey) {
+    daily.streak = daily.lastPlayedDate === getPreviousDateKey(dateKey)
+      ? Math.max(0, daily.streak) + 1
+      : 1;
+    daily.lastPlayedDate = dateKey;
+  }
+
+  result.attempts += 1;
+  result.completed = true;
+  result.lastPlayedAt = new Date().toISOString();
+
+  if (run.score > result.bestScore) {
+    result.bestScore = run.score;
+  }
+  if (run.distance > result.bestDistance) {
+    result.bestDistance = run.distance;
+  }
+
+  daily.results[dateKey] = result;
+
+  if (run.score > daily.allTimeBestScore) {
+    daily.allTimeBestScore = run.score;
+    daily.allTimeBestDate = dateKey;
+  }
+  if (run.distance > daily.allTimeBestDistance) {
+    daily.allTimeBestDistance = run.distance;
+  }
+
+  pruneDailyResults(daily);
+  writeDaily(daily);
+  return getDailySummary(dateKey);
+}
+
+function readDaily() {
+  const raw = localStorage.getItem('sm_daily');
+  if (!raw) {
+    return createEmptyDaily();
+  }
+
+  try {
+    return mergeDailyShape(JSON.parse(raw));
+  } catch (_) {
+    return createEmptyDaily();
+  }
+}
+
+function writeDaily(daily) {
+  localStorage.setItem('sm_daily', JSON.stringify(daily));
+}
+
+function createEmptyDaily() {
+  return {
+    lastPlayedDate: '',
+    streak: 0,
+    allTimeBestScore: 0,
+    allTimeBestDistance: 0,
+    allTimeBestDate: '',
+    results: {},
+  };
+}
+
+function createEmptyDailyResult() {
+  return {
+    attempts: 0,
+    bestScore: 0,
+    bestDistance: 0,
+    completed: false,
+    lastPlayedAt: '',
+  };
+}
+
+function mergeDailyShape(daily) {
+  const base = createEmptyDaily();
+  const results = Object.fromEntries(Object.entries(daily?.results || {}).map(([dateKey, result]) => [
+    dateKey,
+    {
+      ...createEmptyDailyResult(),
+      ...result,
+      attempts: Number(result?.attempts) || 0,
+      bestScore: Number(result?.bestScore) || 0,
+      bestDistance: Number(result?.bestDistance) || 0,
+      completed: Boolean(result?.completed),
+    },
+  ]));
+
+  return {
+    ...base,
+    ...(daily || {}),
+    streak: Number(daily?.streak) || 0,
+    allTimeBestScore: Number(daily?.allTimeBestScore) || 0,
+    allTimeBestDistance: Number(daily?.allTimeBestDistance) || 0,
+    results,
+  };
+}
+
+function getPreviousDateKey(dateKey) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function pruneDailyResults(daily) {
+  const keep = new Set(Object.keys(daily.results).sort().slice(-60));
+  Object.keys(daily.results).forEach(dateKey => {
+    if (!keep.has(dateKey)) {
+      delete daily.results[dateKey];
+    }
+  });
 }
